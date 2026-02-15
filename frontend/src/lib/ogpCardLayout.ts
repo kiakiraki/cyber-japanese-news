@@ -64,12 +64,12 @@ export function computeOgpCardPlacements(
     return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
   });
 
-  const top = unique.slice(0, maxCards);
-
   const placed: Rect[] = [];
   const placements: OgpCardPlacement[] = [];
 
-  for (const item of top) {
+  for (const item of unique) {
+    if (placements.length >= maxCards) break;
+
     const pref = PREFECTURE_MAP.get(item.prefectureCode);
     if (!pref) continue;
 
@@ -77,7 +77,6 @@ export function computeOgpCardPlacements(
     if (!coords) continue;
 
     const [anchorX, anchorY] = coords;
-    let cardPlaced = false;
 
     for (const [dx, dy] of OFFSETS) {
       const rect: Rect = { x: anchorX + dx, y: anchorY + dy, w: CARD_W, h: CARD_H };
@@ -92,13 +91,8 @@ export function computeOgpCardPlacements(
           anchorX,
           anchorY,
         });
-        cardPlaced = true;
         break;
       }
-    }
-
-    if (!cardPlaced) {
-      // Skip this card if all directions overlap
     }
   }
 

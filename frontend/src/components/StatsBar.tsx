@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { JmaStatus, JmaSourceStatus } from '../hooks/useJmaData';
+import type { UpdateEvent } from '../types/effects';
 
 interface StatsBarProps {
   totalCount: number;
   lastUpdated: Date | null;
   isLoading: boolean;
   jmaStatus?: JmaSourceStatus;
+  flashEvent?: UpdateEvent | null;
 }
 
 function formatJST(date: Date): string {
@@ -30,7 +33,9 @@ export function StatsBar({
   lastUpdated,
   isLoading,
   jmaStatus = { p2pquake: 'loading', jmaWarning: 'loading' },
+  flashEvent = null,
 }: StatsBarProps) {
+  const isAlertOrCritical = flashEvent && (flashEvent.level === 'alert' || flashEvent.level === 'critical');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -43,8 +48,11 @@ export function StatsBar({
       className="flex items-center justify-between px-4 h-[48px] shrink-0 text-xs tracking-wider"
       style={{
         background: 'linear-gradient(180deg, rgba(18, 18, 26, 0.95) 0%, rgba(10, 10, 15, 0.9) 100%)',
-        borderBottom: '1px solid rgba(0, 255, 255, 0.3)',
-        boxShadow: '0 2px 20px rgba(0, 255, 255, 0.1)',
+        borderBottom: `1px solid ${isAlertOrCritical ? 'rgba(255, 48, 48, 0.6)' : 'rgba(0, 255, 255, 0.3)'}`,
+        boxShadow: isAlertOrCritical
+          ? '0 2px 20px rgba(255, 48, 48, 0.3)'
+          : '0 2px 20px rgba(0, 255, 255, 0.1)',
+        transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
       }}
     >
       <div className="flex items-center gap-2">
@@ -79,7 +87,17 @@ export function StatsBar({
 
         <div className="flex items-center gap-2">
           <span className="text-cyber-text-dim">NEWS</span>
-          <span style={{ color: '#00ffff' }}>{totalCount}</span>
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={totalCount}
+              style={{ color: '#00ffff' }}
+              initial={{ scale: 1 }}
+              animate={flashEvent?.source === 'news' ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {totalCount}
+            </motion.span>
+          </AnimatePresence>
         </div>
 
         <div className="flex items-center gap-2">
