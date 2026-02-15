@@ -1,8 +1,10 @@
 import type {
   EarthquakeItem,
   TsunamiItem,
+  WarningAreaSummary,
   PrefectureIntensity,
 } from './types';
+import { fetchWarnings } from './warning-fetcher';
 
 const P2P_BASE = 'https://api.p2pquake.net/v2/history';
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
@@ -117,11 +119,35 @@ async function fetchTsunamis(): Promise<TsunamiItem[]> {
 export async function fetchJmaData(): Promise<{
   earthquakes: EarthquakeItem[];
   tsunamis: TsunamiItem[];
+  warnings: WarningAreaSummary[];
+  sources: { p2pquake: 'ok' | 'error'; jmaWarning: 'ok' | 'error' };
 }> {
-  const [earthquakes, tsunamis] = await Promise.all([
-    fetchEarthquakes(),
-    fetchTsunamis(),
+  const [quakeResult, warningResult] = await Promise.allSettled([
+    Promise.all([fetchEarthquakes(), fetchTsunamis()]),
+    fetchWarnings(),
   ]);
 
-  return { earthquakes, tsunamis };
+  let earthquakes: EarthquakeItem[] = [];
+  let tsunamis: TsunamiItem[] = [];
+  let p2pStatus: 'ok' | 'error' = 'error';
+
+  if (quakeResult.status === 'fulfilled') {
+    [earthquakes, tsunamis] = quakeResult.value;
+    p2pStatus = 'ok';
+  }
+
+  let warnings: WarningAreaSummary[] = [];
+  let warningStatus: 'ok' | 'error' = 'error';
+
+  if (warningResult.status === 'fulfilled') {
+    warnings = warningResult.value.warnings;
+    warningStatus = warningResult.value.status;
+  }
+
+  return {
+    earthquakes,
+    tsunamis,
+    warnings,
+    sources: { p2pquake: p2pStatus, jmaWarning: warningStatus },
+  };
 }

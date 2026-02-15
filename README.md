@@ -6,6 +6,8 @@ NHK RSSフィードからニュースを取得し、記事タイトルのキー�
 
 P2P地震情報 API経由で地震・津波データも取得し、震源パルスアニメーション・都道府県別震度ハイライトを地図上に表示。
 
+気象庁 bosai JSON APIから気象警報・注意報データも取得し、警報発令中の都道府県を地図上でハイライト表示。
+
 ![Screenshot](docs/screenshot.png)
 
 ## 技術スタック
@@ -18,6 +20,7 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 | バックエンド | Cloudflare Workers |
 | RSSパース | fast-xml-parser |
 | 地震データ | P2P地震情報 JSON API v2 |
+| 気象警報データ | 気象庁 bosai JSON API |
 
 ## 機能
 
@@ -31,6 +34,9 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 - 津波情報バナー（大津波警報・津波警報・津波注意報）
 - 震度4以上の地震でBreaking演出と連携
 - 30秒間隔の地震データ自動更新
+- 気象警報・注意報の地図ハイライト（特別警報=紫パルス、警報=赤、注意報=黄）
+- サイドパネルに警報一覧（注意報トグル付き）
+- 特別警報時の全画面バナー演出
 
 ## セットアップ
 
@@ -85,6 +91,9 @@ cyber-japanese-news/
 │       ├── index.ts         # APIエントリポイント
 │       ├── rss-fetcher.ts   # RSSフェッチ + パース
 │       ├── jma-fetcher.ts   # P2P地震情報フェッチ
+│       ├── warning-fetcher.ts    # 気象庁警報フェッチ
+│       ├── warning-codes.ts      # 警報コード定義テーブル
+│       ├── area-code-map.ts      # 地域コード→都道府県名マップ
 │       └── region-classifier.ts  # 都道府県分類
 └── docs/
     └── screenshot.png
@@ -95,10 +104,11 @@ cyber-japanese-news/
 ```
 GET /api/news                    # 全ニュース取得
 GET /api/news?prefecture=13      # 都道府県フィルタ（13=東京都）
-GET /api/jma                     # 地震・津波情報取得
+GET /api/jma                     # 地震・津波・気象警報情報取得
 ```
 
 ## データソース
 
 - ニュース: [NHK RSS](https://www3.nhk.or.jp/rss/news/cat0.xml)
 - 地震情報: [P2P地震情報](https://www.p2pquake.net/)（気象庁データ）
+- 気象警報: [気象庁 bosai API](https://www.jma.go.jp/bosai/warning/)（政府標準利用規約 第2.0版）

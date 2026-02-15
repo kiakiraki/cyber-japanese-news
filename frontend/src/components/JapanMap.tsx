@@ -3,10 +3,11 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { NewsItem } from '../types/news';
-import type { EarthquakeItem } from '../types/jma';
+import type { EarthquakeItem, WarningAreaSummary } from '../types/jma';
 import { PREFECTURE_MAP } from '../lib/prefectures';
 import { EpicenterMarker } from './EpicenterMarker';
 import { SeismicOverlay } from './SeismicOverlay';
+import { WarningOverlay } from './WarningOverlay';
 
 interface JapanMapProps {
   newsByPrefecture: Map<string, NewsItem[]>;
@@ -14,6 +15,7 @@ interface JapanMapProps {
   onSelectPrefecture: (code: string | null) => void;
   earthquakes?: EarthquakeItem[];
   recentQuake?: EarthquakeItem | null;
+  warnings?: WarningAreaSummary[];
 }
 
 interface PrefectureProperties {
@@ -38,6 +40,7 @@ export function JapanMap({
   onSelectPrefecture,
   earthquakes = [],
   recentQuake = null,
+  warnings = [],
 }: JapanMapProps) {
   const mapGroupRef = useRef<SVGGElement>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
@@ -228,7 +231,10 @@ export function JapanMap({
       {/* D3-managed: base map + news markers */}
       <g ref={mapGroupRef} />
 
-      {/* React-managed: seismic overlay */}
+      {/* React-managed: warning overlay (below seismic) */}
+      <WarningOverlay warnings={warnings} prefecturePaths={prefecturePaths} />
+
+      {/* React-managed: seismic overlay (above warning) */}
       <SeismicOverlay recentQuake={recentQuake} prefecturePaths={prefecturePaths} />
 
       {/* React-managed: epicenter markers */}

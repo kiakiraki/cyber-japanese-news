@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import type { JmaStatus } from '../hooks/useJmaData';
+import type { JmaStatus, JmaSourceStatus } from '../hooks/useJmaData';
 
 interface StatsBarProps {
   totalCount: number;
   lastUpdated: Date | null;
   isLoading: boolean;
-  jmaStatus?: JmaStatus;
+  jmaStatus?: JmaSourceStatus;
 }
 
 function formatJST(date: Date): string {
@@ -25,7 +25,12 @@ const JMA_STATUS_COLORS: Record<JmaStatus, string> = {
   loading: '#ff8800',
 };
 
-export function StatsBar({ totalCount, lastUpdated, isLoading, jmaStatus = 'loading' }: StatsBarProps) {
+export function StatsBar({
+  totalCount,
+  lastUpdated,
+  isLoading,
+  jmaStatus = { p2pquake: 'loading', jmaWarning: 'loading' },
+}: StatsBarProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -81,12 +86,24 @@ export function StatsBar({ totalCount, lastUpdated, isLoading, jmaStatus = 'load
           <div
             className="w-2 h-2 rounded-full"
             style={{
-              backgroundColor: JMA_STATUS_COLORS[jmaStatus],
-              boxShadow: `0 0 6px ${JMA_STATUS_COLORS[jmaStatus]}`,
-              animation: jmaStatus === 'loading' ? 'pulse 1s infinite' : 'none',
+              backgroundColor: JMA_STATUS_COLORS[jmaStatus.p2pquake],
+              boxShadow: `0 0 6px ${JMA_STATUS_COLORS[jmaStatus.p2pquake]}`,
+              animation: jmaStatus.p2pquake === 'loading' ? 'pulse 1s infinite' : 'none',
             }}
           />
           <span className="text-cyber-text-dim">QUAKE</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{
+              backgroundColor: JMA_STATUS_COLORS[jmaStatus.jmaWarning],
+              boxShadow: `0 0 6px ${JMA_STATUS_COLORS[jmaStatus.jmaWarning]}`,
+              animation: jmaStatus.jmaWarning === 'loading' ? 'pulse 1s infinite' : 'none',
+            }}
+          />
+          <span className="text-cyber-text-dim">WARN</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -97,7 +114,7 @@ export function StatsBar({ totalCount, lastUpdated, isLoading, jmaStatus = 'load
         </div>
 
         <div className="text-[9px]" style={{ color: '#555566' }}>
-          地震情報: P2P地震情報
+          地震情報: P2P地震情報 | 気象警報: 気象庁
         </div>
       </div>
     </header>
