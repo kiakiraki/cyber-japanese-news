@@ -8,7 +8,9 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 
 気象庁 bosai JSON APIから気象警報・注意報データも取得し、警報発令中の都道府県を地図上でハイライト表示。
 
-![Screenshot](docs/screenshot.png)
+NHK記事ページからOGP画像を取得し、地図上にサイバーパンク風のニュースカードとして表示。
+
+![Screenshot](docs/screenshot-ogp.png)
 
 ## 技術スタック
 
@@ -21,6 +23,7 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 | RSSパース | fast-xml-parser |
 | 地震データ | P2P地震情報 JSON API v2 |
 | 気象警報データ | 気象庁 bosai JSON API |
+| OGP取得 | Worker側 server-side fetch + 正規表現抽出 |
 
 ## 機能
 
@@ -37,6 +40,9 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 - 気象警報・注意報の地図ハイライト（特別警報=紫パルス、警報=赤、注意報=黄）
 - サイドパネルに警報一覧（注意報トグル付き）
 - 特別警報時の全画面バナー演出
+- OGPニュースカード（地図上にサムネイル付きカード最大5枚、重なり回避配置）
+- Breaking記事は赤ボーダー+glow、通常記事はcyanボーダー
+- カードクリックで記事ページを新規タブで開く
 
 ## セットアップ
 
@@ -92,11 +98,12 @@ cyber-japanese-news/
 │       ├── rss-fetcher.ts   # RSSフェッチ + パース
 │       ├── jma-fetcher.ts   # P2P地震情報フェッチ
 │       ├── warning-fetcher.ts    # 気象庁警報フェッチ
+│       ├── ogp-fetcher.ts        # OGP画像URL取得 + キャッシュ
 │       ├── warning-codes.ts      # 警報コード定義テーブル
 │       ├── area-code-map.ts      # 地域コード→都道府県名マップ
 │       └── region-classifier.ts  # 都道府県分類
 └── docs/
-    └── screenshot.png
+    └── screenshot-ogp.png
 ```
 
 ## API
