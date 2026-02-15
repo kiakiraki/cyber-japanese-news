@@ -142,7 +142,7 @@ export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, eart
       </div>
 
       {/* Weather Alerts Section */}
-      <WarningPanel warnings={warnings} />
+      <WarningPanel warnings={warnings} expanded={selectedPrefecture !== null} selectedPrefecture={selectedPrefecture} />
 
       {/* Seismic Activity Section */}
       <div

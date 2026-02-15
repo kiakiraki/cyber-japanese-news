@@ -43,6 +43,13 @@ NHK記事ページからOGP画像を取得し、地図上にサイバーパン�
 - OGPニュースカード（地図上にサムネイル付きカード最大5枚、重なり回避配置）
 - Breaking記事は赤ボーダー+glow、通常記事はcyanボーダー
 - カードクリックで記事ページを新規タブで開く
+- ニュース到着エフェクト（3段階: incoming/alert/critical）
+  - Lv.1 IncomingPulse: シアンのボーダーフラッシュ（ニュース更新時）
+  - Lv.2 AlertRipple: 赤ビネット + SVGリップル + ヘッドライン表示（震度3以上の地震等）
+  - Lv.3 CriticalShockwave: 画面シェイク + 衝撃波リング + グリッチテロップ（震度5強以上・津波等）
+  - クールダウン制御（incoming=10s, alert=5s, critical=即時）、優先度制御、prefers-reduced-motion対応
+- 地震履歴の表示期間（震度3以下: 3時間、震度4以上: 6時間）
+- 都道府県選択時にWEATHER ALERTSを自動展開・該当県でフィルタ
 
 ## セットアップ
 

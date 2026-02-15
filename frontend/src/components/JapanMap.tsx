@@ -18,6 +18,7 @@ interface JapanMapProps {
   recentQuake?: EarthquakeItem | null;
   warnings?: WarningAreaSummary[];
   news?: NewsItem[];
+  pulsePrefectures?: string[];
 }
 
 interface PrefectureProperties {
@@ -44,6 +45,7 @@ export function JapanMap({
   recentQuake = null,
   warnings = [],
   news = [],
+  pulsePrefectures = [],
 }: JapanMapProps) {
   const mapGroupRef = useRef<SVGGElement>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
@@ -214,6 +216,40 @@ export function JapanMap({
       }
     }
   }, [topology, newsByPrefecture, selectedPrefecture, handleClick, projection, pathGenerator]);
+
+  // Pulse rings for effect prefectures
+  useEffect(() => {
+    if (!topology || !mapGroupRef.current || pulsePrefectures.length === 0) return;
+
+    const g = d3.select(mapGroupRef.current);
+    const pulseGroup = g.select<SVGGElement>('.pulse-rings');
+    if (!pulseGroup.empty()) pulseGroup.remove();
+
+    const pg = g.append('g').attr('class', 'pulse-rings');
+
+    for (const code of pulsePrefectures) {
+      const pref = PREFECTURE_MAP.get(code);
+      if (!pref) continue;
+      const [x, y] = projection([pref.lng, pref.lat]) ?? [0, 0];
+
+      for (let i = 0; i < 2; i++) {
+        pg.append('circle')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('r', 4)
+          .attr('fill', 'none')
+          .attr('stroke', '#00ffff')
+          .attr('stroke-width', 1.5)
+          .attr('opacity', 0.7)
+          .transition()
+          .delay(i * 300)
+          .duration(1500)
+          .attr('r', 30)
+          .attr('opacity', 0)
+          .remove();
+      }
+    }
+  }, [pulsePrefectures, topology, projection]);
 
   // Compute epicenter positions
   const epicenterPositions = useMemo(() => {

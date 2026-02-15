@@ -7,6 +7,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const POLL_INTERVAL = 30_000;
 const MAX_RETRIES = 3;
+const THREE_HOURS = 3 * 60 * 60 * 1000;
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 export type JmaStatus = 'fresh' | 'stale' | 'error' | 'loading';
@@ -30,9 +31,18 @@ async function fetchWithRetry(url: string, retries = MAX_RETRIES) {
   return null;
 }
 
+function filterRecentQuakes(earthquakes: EarthquakeItem[]): EarthquakeItem[] {
+  const now = Date.now();
+  return earthquakes.filter((eq) => {
+    const elapsed = now - new Date(eq.time).getTime();
+    // maxScale <= 30 (震度3以下): 3時間以内, それ以上: 6時間以内
+    const cutoff = eq.maxScale <= 30 ? THREE_HOURS : SIX_HOURS;
+    return elapsed < cutoff;
+  });
+}
+
 function findRecentQuake(earthquakes: EarthquakeItem[]): EarthquakeItem | null {
-  const cutoff = Date.now() - SIX_HOURS;
-  const recent = earthquakes.filter((eq) => new Date(eq.time).getTime() > cutoff);
+  const recent = filterRecentQuakes(earthquakes);
   if (recent.length === 0) return null;
 
   return recent.reduce((strongest, eq) =>
@@ -89,6 +99,7 @@ export function useJmaData() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  const displayQuakes = useMemo(() => filterRecentQuakes(earthquakes), [earthquakes]);
   const recentQuake = useMemo(() => findRecentQuake(earthquakes), [earthquakes]);
 
   const hasTsunami = useMemo(
@@ -108,6 +119,7 @@ export function useJmaData() {
 
   return {
     earthquakes,
+    displayQuakes,
     tsunamis,
     warnings,
     recentQuake,
