@@ -1,13 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"npm run dev -w worker\" \"npm run dev -w frontend\"",
-    "build": "npm run build -w worker && npm run build -w frontend"
+    "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"pnpm run --filter ./worker dev\" \"pnpm run --filter ./frontend dev\"",
+    "build": "pnpm run --filter ./worker build && pnpm run --filter ./frontend build"
   },
-  "workspaces": [
-    "worker",
-    "frontend"
-  ],
   "devDependencies": {
     "concurrently": "^9.1.2"
   }
