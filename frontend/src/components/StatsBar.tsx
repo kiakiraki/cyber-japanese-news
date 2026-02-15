@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import type { JmaStatus } from '../hooks/useJmaData';
 
 interface StatsBarProps {
   totalCount: number;
   lastUpdated: Date | null;
   isLoading: boolean;
+  jmaStatus?: JmaStatus;
 }
 
 function formatJST(date: Date): string {
@@ -16,7 +18,14 @@ function formatJST(date: Date): string {
   });
 }
 
-export function StatsBar({ totalCount, lastUpdated, isLoading }: StatsBarProps) {
+const JMA_STATUS_COLORS: Record<JmaStatus, string> = {
+  fresh: '#00ff88',
+  stale: '#ff8800',
+  error: '#ff3030',
+  loading: '#ff8800',
+};
+
+export function StatsBar({ totalCount, lastUpdated, isLoading, jmaStatus = 'loading' }: StatsBarProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -69,10 +78,26 @@ export function StatsBar({ totalCount, lastUpdated, isLoading }: StatsBarProps) 
         </div>
 
         <div className="flex items-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{
+              backgroundColor: JMA_STATUS_COLORS[jmaStatus],
+              boxShadow: `0 0 6px ${JMA_STATUS_COLORS[jmaStatus]}`,
+              animation: jmaStatus === 'loading' ? 'pulse 1s infinite' : 'none',
+            }}
+          />
+          <span className="text-cyber-text-dim">QUAKE</span>
+        </div>
+
+        <div className="flex items-center gap-2">
           <span className="text-cyber-text-dim">SYNC</span>
           <span className="text-cyber-text">
             {lastUpdated ? formatJST(lastUpdated) : '--:--:--'}
           </span>
+        </div>
+
+        <div className="text-[9px]" style={{ color: '#555566' }}>
+          地震情報: P2P地震情報
         </div>
       </div>
     </header>

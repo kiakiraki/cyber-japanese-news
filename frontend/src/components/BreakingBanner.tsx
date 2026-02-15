@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import type { NewsItem } from '../types/news';
+import type { BreakingItem } from '../hooks/useBreakingDetection';
 import { GlitchText } from './GlitchText';
 
 interface BreakingBannerProps {
-  currentBreaking: NewsItem | null;
+  currentBreaking: BreakingItem | null;
   queueSize: number;
   onDismiss: () => void;
 }

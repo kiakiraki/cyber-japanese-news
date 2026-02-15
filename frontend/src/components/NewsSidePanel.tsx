@@ -1,11 +1,14 @@
 import type { NewsItem } from '../types/news';
+import type { EarthquakeItem } from '../types/jma';
 import { GlitchText } from './GlitchText';
+import { QuakeInfoCard } from './QuakeInfoCard';
 import { PREFECTURE_MAP } from '../lib/prefectures';
 
 interface NewsSidePanelProps {
   selectedPrefecture: string | null;
   news: NewsItem[];
   newsByPrefecture: Map<string, NewsItem[]>;
+  earthquakes?: EarthquakeItem[];
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -98,7 +101,7 @@ function NewsCard({ item }: { item: NewsItem }) {
   );
 }
 
-export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture }: NewsSidePanelProps) {
+export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, earthquakes = [] }: NewsSidePanelProps) {
   const displayNews = selectedPrefecture
     ? newsByPrefecture.get(selectedPrefecture) ?? []
     : news;
@@ -106,6 +109,8 @@ export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture }: Ne
   const prefName = selectedPrefecture
     ? PREFECTURE_MAP.get(selectedPrefecture)?.name ?? '不明'
     : '全国';
+
+  const displayQuakes = earthquakes.slice(0, 5);
 
   return (
     <aside
@@ -132,6 +137,27 @@ export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture }: Ne
             {displayNews.length} articles
           </span>
         </div>
+      </div>
+
+      {/* Seismic Activity Section */}
+      <div
+        className="px-3 py-2 shrink-0"
+        style={{ borderBottom: '1px solid rgba(0, 255, 255, 0.1)' }}
+      >
+        <div className="text-[10px] tracking-[0.2em] mb-2" style={{ color: '#ff922b' }}>
+          SEISMIC ACTIVITY
+        </div>
+        {displayQuakes.length === 0 ? (
+          <div className="text-[10px] tracking-wider py-1" style={{ color: '#444455' }}>
+            NO RECENT ACTIVITY
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {displayQuakes.map((eq) => (
+              <QuakeInfoCard key={eq.id} earthquake={eq} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* News List */}

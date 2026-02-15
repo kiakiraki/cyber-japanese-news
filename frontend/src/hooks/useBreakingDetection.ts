@@ -1,17 +1,52 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { NewsItem } from '../types/news';
+import type { EarthquakeItem, TsunamiItem } from '../types/jma';
+import { getScaleInfo } from '../lib/seismicScale';
 
 const BREAKING_DISPLAY_DURATION = 20_000;
 
-export function useBreakingDetection(news: NewsItem[]) {
-  const [breakingQueue, setBreakingQueue] = useState<NewsItem[]>([]);
-  const [currentBreaking, setCurrentBreaking] = useState<NewsItem | null>(null);
+export interface BreakingItem {
+  id: string;
+  title: string;
+  prefectureName: string;
+}
+
+function earthquakeToBreaking(eq: EarthquakeItem): BreakingItem {
+  const scaleLabel = getScaleInfo(eq.maxScale).label;
+  return {
+    id: `eq-${eq.id}`,
+    title: `⚠ 地震速報: ${eq.hypocenter.name} M${eq.hypocenter.magnitude} 最大${scaleLabel}`,
+    prefectureName: eq.hypocenter.name,
+  };
+}
+
+function tsunamiToBreaking(t: TsunamiItem): BreakingItem {
+  const areaNames = t.areas.slice(0, 3).map((a) => a.name).join('、');
+  return {
+    id: `ts-${t.id}`,
+    title: `🌊 津波情報: ${areaNames}`,
+    prefectureName: '全国',
+  };
+}
+
+export function useBreakingDetection(
+  news: NewsItem[],
+  earthquakes: EarthquakeItem[] = [],
+  tsunamis: TsunamiItem[] = [],
+) {
+  const [breakingQueue, setBreakingQueue] = useState<BreakingItem[]>([]);
+  const [currentBreaking, setCurrentBreaking] = useState<BreakingItem | null>(null);
   const shownIdsRef = useRef(new Set<string>());
 
+  // News breaking items
   useEffect(() => {
-    const newBreaking = news.filter(
-      (item) => item.isBreaking && !shownIdsRef.current.has(item.id)
-    );
+    const newBreaking = news
+      .filter((item) => item.isBreaking && !shownIdsRef.current.has(item.id))
+      .map((item): BreakingItem => ({
+        id: item.id,
+        title: item.title,
+        prefectureName: item.prefectureName,
+      }));
 
     if (newBreaking.length > 0) {
       setBreakingQueue((prev) => [...prev, ...newBreaking]);
@@ -21,6 +56,35 @@ export function useBreakingDetection(news: NewsItem[]) {
     }
   }, [news]);
 
+  // Earthquake breaking items
+  useEffect(() => {
+    const newBreaking = earthquakes
+      .filter((eq) => eq.isBreaking && !shownIdsRef.current.has(`eq-${eq.id}`))
+      .map(earthquakeToBreaking);
+
+    if (newBreaking.length > 0) {
+      setBreakingQueue((prev) => [...prev, ...newBreaking]);
+      for (const item of newBreaking) {
+        shownIdsRef.current.add(item.id);
+      }
+    }
+  }, [earthquakes]);
+
+  // Tsunami breaking items
+  useEffect(() => {
+    const newBreaking = tsunamis
+      .filter((t) => t.isBreaking && !shownIdsRef.current.has(`ts-${t.id}`))
+      .map(tsunamiToBreaking);
+
+    if (newBreaking.length > 0) {
+      setBreakingQueue((prev) => [...prev, ...newBreaking]);
+      for (const item of newBreaking) {
+        shownIdsRef.current.add(item.id);
+      }
+    }
+  }, [tsunamis]);
+
+  // Queue processor
   useEffect(() => {
     if (!currentBreaking && breakingQueue.length > 0) {
       setCurrentBreaking(breakingQueue[0]);
@@ -28,6 +92,7 @@ export function useBreakingDetection(news: NewsItem[]) {
     }
   }, [currentBreaking, breakingQueue]);
 
+  // Auto-dismiss timer
   useEffect(() => {
     if (!currentBreaking) return;
 
