@@ -2,7 +2,7 @@ version: 2
 
 updates:
   # ルート (concurrently など)
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
@@ -17,7 +17,7 @@ updates:
           - "*"
 
   # frontend (React, Vite, Tailwind, D3 など)
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
@@ -67,7 +67,7 @@ updates:
           - "eslint-*"
 
   # worker (Cloudflare Workers)
-  - package-ecosystem: pnpm
+  - package-ecosystem: npm
     directory: /worker
     schedule:
       interval: weekly
