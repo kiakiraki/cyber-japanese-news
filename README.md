@@ -10,7 +10,7 @@ P2P地震情報 API経由で地震・津波データも取得し、震源パル�
 
 NHK記事ページからOGP画像を取得し、地図上にサイバーパンク風のニュースカードとして表示。
 
-![Screenshot](docs/screenshot-ogp.png)
+![Screenshot](docs/screenshot.png)
 
 ## 技術スタック
 
@@ -103,7 +103,7 @@ cyber-japanese-news/
 │       ├── area-code-map.ts      # 地域コード→都道府県名マップ
 │       └── region-classifier.ts  # 都道府県分類
 └── docs/
-    └── screenshot-ogp.png
+    └── screenshot.png
 ```
 
 ## API
