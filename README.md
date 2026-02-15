@@ -55,10 +55,10 @@ NHK記事ページからOGP画像を取得し、地図上にサイバーパン�
 
 ```bash
 # 依存インストール（ルートで一括）
-npm install
+pnpm install
 
 # Worker + Frontend を同時起動
-npm run dev
+pnpm dev
 ```
 
 Worker は `http://localhost:8787`、Frontend は `http://localhost:5173` で起動します。
@@ -68,13 +68,13 @@ Worker は `http://localhost:8787`、Frontend は `http://localhost:5173` で起
 ```bash
 # フロントエンドのみ
 cd frontend
-npm install
-npm run dev          # http://localhost:5173
+pnpm install
+pnpm dev             # http://localhost:5173
 
 # バックエンドのみ
 cd worker
-npm install
-npx wrangler dev     # http://localhost:8787
+pnpm install
+pnpm exec wrangler dev  # http://localhost:8787
 ```
 
 ## 環境変数
@@ -92,7 +92,7 @@ VITE_API_URL=http://localhost:8787  # Worker APIのURL
 
 ```
 cyber-japanese-news/
-├── package.json             # ルート（npm workspaces + concurrently）
+├── package.json             # ルート（pnpm workspaces + concurrently）
 ├── frontend/                # Vite + React + TypeScript
 │   └── src/
 │       ├── components/      # UIコンポーネント
