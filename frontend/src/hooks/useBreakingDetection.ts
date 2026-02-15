@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { NewsItem } from '../types/news';
-import type { EarthquakeItem, TsunamiItem } from '../types/jma';
+import type { EarthquakeItem, TsunamiItem, WarningAreaSummary } from '../types/jma';
 import { getScaleInfo } from '../lib/seismicScale';
 
 const BREAKING_DISPLAY_DURATION = 20_000;
@@ -29,10 +29,21 @@ function tsunamiToBreaking(t: TsunamiItem): BreakingItem {
   };
 }
 
+function specialWarningToBreaking(w: WarningAreaSummary): BreakingItem[] {
+  return w.activeWarnings
+    .filter((aw) => aw.severity === 'special')
+    .map((aw) => ({
+      id: `sw-${w.areaCode}-${aw.code}`,
+      title: `⚠ 特別警報: ${w.prefectureName} ${aw.name}`,
+      prefectureName: w.prefectureName,
+    }));
+}
+
 export function useBreakingDetection(
   news: NewsItem[],
   earthquakes: EarthquakeItem[] = [],
   tsunamis: TsunamiItem[] = [],
+  warnings: WarningAreaSummary[] = [],
 ) {
   const [breakingQueue, setBreakingQueue] = useState<BreakingItem[]>([]);
   const [currentBreaking, setCurrentBreaking] = useState<BreakingItem | null>(null);
@@ -83,6 +94,21 @@ export function useBreakingDetection(
       }
     }
   }, [tsunamis]);
+
+  // Special warning breaking items
+  useEffect(() => {
+    const newBreaking = warnings
+      .filter((w) => w.maxSeverity === 'special')
+      .flatMap(specialWarningToBreaking)
+      .filter((item) => !shownIdsRef.current.has(item.id));
+
+    if (newBreaking.length > 0) {
+      setBreakingQueue((prev) => [...prev, ...newBreaking]);
+      for (const item of newBreaking) {
+        shownIdsRef.current.add(item.id);
+      }
+    }
+  }, [warnings]);
 
   // Queue processor
   useEffect(() => {

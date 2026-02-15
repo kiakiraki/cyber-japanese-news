@@ -54,12 +54,33 @@ export interface TsunamiItem {
   isBreaking: boolean;
 }
 
+// --- Warning (気象警報) Types ---
+
+export interface ActiveWarning {
+  code: string;
+  name: string;
+  severity: 'special' | 'warning' | 'advisory';
+  status: string; // "発表" | "継続"
+}
+
+export interface WarningAreaSummary {
+  areaCode: string;        // offices コード "080000" 等
+  areaName: string;        // 地域名（複数officesがある場合は代表名）
+  prefectureName: string;  // 47都道府県名（北海道は統一）
+  maxSeverity: 'special' | 'warning' | 'advisory' | 'none';
+  activeWarnings: ActiveWarning[];
+  reportDatetime: string;
+}
+
 export interface JmaApiResponse {
   earthquakes: EarthquakeItem[];
   tsunamis: TsunamiItem[];
+  warnings: WarningAreaSummary[];
   meta: {
     lastUpdated: string;
-    source: string;
-    status: 'ok' | 'error';
+    sources: {
+      p2pquake: 'ok' | 'error';
+      jmaWarning: 'ok' | 'error';
+    };
   };
 }

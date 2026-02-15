@@ -53,15 +53,15 @@ export default {
 
     if (url.pathname === '/api/jma' && request.method === 'GET') {
       try {
-        const { earthquakes, tsunamis } = await fetchJmaData();
+        const { earthquakes, tsunamis, warnings, sources } = await fetchJmaData();
 
         const body: JmaApiResponse = {
           earthquakes,
           tsunamis,
+          warnings,
           meta: {
             lastUpdated: new Date().toISOString(),
-            source: 'P2P地震情報',
-            status: 'ok',
+            sources,
           },
         };
 
@@ -76,10 +76,13 @@ export default {
         const body: JmaApiResponse = {
           earthquakes: [],
           tsunamis: [],
+          warnings: [],
           meta: {
             lastUpdated: new Date().toISOString(),
-            source: 'P2P地震情報',
-            status: 'error',
+            sources: {
+              p2pquake: 'error',
+              jmaWarning: 'error',
+            },
           },
         };
 

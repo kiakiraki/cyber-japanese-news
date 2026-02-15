@@ -9,6 +9,7 @@ import { JapanMap } from './components/JapanMap';
 import { NewsSidePanel } from './components/NewsSidePanel';
 import { BreakingBanner } from './components/BreakingBanner';
 import { TsunamiBanner } from './components/TsunamiBanner';
+import { WarningBanner } from './components/WarningBanner';
 
 function App() {
   const { news, newsByPrefecture, totalCount, lastUpdated, isLoading } = useNewsData();
@@ -17,6 +18,7 @@ function App() {
     news,
     jmaData.earthquakes,
     jmaData.tsunamis,
+    jmaData.warnings,
   );
   const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(null);
 
@@ -24,6 +26,7 @@ function App() {
     <div className="h-screen w-screen flex flex-col relative overflow-hidden" style={{ background: '#0a0a0f' }}>
       <GridBackground />
 
+      <WarningBanner warnings={jmaData.warnings} />
       <TsunamiBanner tsunamis={jmaData.tsunamis} />
 
       <StatsBar
@@ -42,6 +45,7 @@ function App() {
             onSelectPrefecture={setSelectedPrefecture}
             earthquakes={jmaData.earthquakes}
             recentQuake={jmaData.recentQuake}
+            warnings={jmaData.warnings}
           />
         </div>
 
@@ -51,6 +55,7 @@ function App() {
           news={news}
           newsByPrefecture={newsByPrefecture}
           earthquakes={jmaData.earthquakes}
+          warnings={jmaData.warnings}
         />
       </div>
 

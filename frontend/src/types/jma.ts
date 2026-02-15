@@ -35,13 +35,34 @@ export interface TsunamiItem {
   isBreaking: boolean;
 }
 
+// --- Warning (気象警報) Types ---
+
+export interface ActiveWarning {
+  code: string;
+  name: string;
+  severity: 'special' | 'warning' | 'advisory';
+  status: string;
+}
+
+export interface WarningAreaSummary {
+  areaCode: string;
+  areaName: string;
+  prefectureName: string;
+  maxSeverity: 'special' | 'warning' | 'advisory' | 'none';
+  activeWarnings: ActiveWarning[];
+  reportDatetime: string;
+}
+
 export interface JmaApiResponse {
   earthquakes: EarthquakeItem[];
   tsunamis: TsunamiItem[];
+  warnings: WarningAreaSummary[];
   meta: {
     lastUpdated: string;
-    source: string;
-    status: 'ok' | 'error';
+    sources: {
+      p2pquake: 'ok' | 'error';
+      jmaWarning: 'ok' | 'error';
+    };
   };
 }
 

@@ -1,7 +1,8 @@
 import type { NewsItem } from '../types/news';
-import type { EarthquakeItem } from '../types/jma';
+import type { EarthquakeItem, WarningAreaSummary } from '../types/jma';
 import { GlitchText } from './GlitchText';
 import { QuakeInfoCard } from './QuakeInfoCard';
+import { WarningPanel } from './WarningPanel';
 import { PREFECTURE_MAP } from '../lib/prefectures';
 
 interface NewsSidePanelProps {
@@ -9,6 +10,7 @@ interface NewsSidePanelProps {
   news: NewsItem[];
   newsByPrefecture: Map<string, NewsItem[]>;
   earthquakes?: EarthquakeItem[];
+  warnings?: WarningAreaSummary[];
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -101,7 +103,7 @@ function NewsCard({ item }: { item: NewsItem }) {
   );
 }
 
-export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, earthquakes = [] }: NewsSidePanelProps) {
+export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, earthquakes = [], warnings = [] }: NewsSidePanelProps) {
   const displayNews = selectedPrefecture
     ? newsByPrefecture.get(selectedPrefecture) ?? []
     : news;
@@ -138,6 +140,9 @@ export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, eart
           </span>
         </div>
       </div>
+
+      {/* Weather Alerts Section */}
+      <WarningPanel warnings={warnings} />
 
       {/* Seismic Activity Section */}
       <div

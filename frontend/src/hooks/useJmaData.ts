@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { EarthquakeItem, TsunamiItem } from '../types/jma';
+import type { EarthquakeItem, TsunamiItem, WarningAreaSummary } from '../types/jma';
 import { MOCK_EARTHQUAKES, MOCK_TSUNAMIS } from '../lib/mockJma';
+import { MOCK_WARNINGS } from '../lib/mockWarnings';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
@@ -9,6 +10,11 @@ const MAX_RETRIES = 3;
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 export type JmaStatus = 'fresh' | 'stale' | 'error' | 'loading';
+
+export interface JmaSourceStatus {
+  p2pquake: JmaStatus;
+  jmaWarning: JmaStatus;
+}
 
 async function fetchWithRetry(url: string, retries = MAX_RETRIES) {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -37,15 +43,20 @@ function findRecentQuake(earthquakes: EarthquakeItem[]): EarthquakeItem | null {
 export function useJmaData() {
   const [earthquakes, setEarthquakes] = useState<EarthquakeItem[]>([]);
   const [tsunamis, setTsunamis] = useState<TsunamiItem[]>([]);
+  const [warnings, setWarnings] = useState<WarningAreaSummary[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [status, setStatus] = useState<JmaStatus>('loading');
+  const [status, setStatus] = useState<JmaSourceStatus>({
+    p2pquake: 'loading',
+    jmaWarning: 'loading',
+  });
 
   const fetchData = useCallback(async () => {
     if (USE_MOCK) {
       setEarthquakes(MOCK_EARTHQUAKES);
       setTsunamis(MOCK_TSUNAMIS);
+      setWarnings(MOCK_WARNINGS);
       setLastUpdated(new Date());
-      setStatus('fresh');
+      setStatus({ p2pquake: 'fresh', jmaWarning: 'fresh' });
       return;
     }
 
@@ -54,11 +65,21 @@ export function useJmaData() {
       if (data) {
         setEarthquakes(data.earthquakes ?? []);
         setTsunamis(data.tsunamis ?? []);
+        setWarnings(data.warnings ?? []);
         setLastUpdated(new Date());
-        setStatus(data.meta?.status === 'ok' ? 'fresh' : 'stale');
+
+        const sources = data.meta?.sources;
+        if (sources) {
+          setStatus({
+            p2pquake: sources.p2pquake === 'ok' ? 'fresh' : 'stale',
+            jmaWarning: sources.jmaWarning === 'ok' ? 'fresh' : 'stale',
+          });
+        } else {
+          setStatus({ p2pquake: 'stale', jmaWarning: 'stale' });
+        }
       }
     } catch {
-      setStatus('error');
+      setStatus({ p2pquake: 'error', jmaWarning: 'error' });
     }
   }, []);
 
@@ -75,11 +96,24 @@ export function useJmaData() {
     [tsunamis]
   );
 
+  const hasWarning = useMemo(
+    () => warnings.some((w) => w.maxSeverity === 'warning' || w.maxSeverity === 'special'),
+    [warnings]
+  );
+
+  const hasSpecialWarning = useMemo(
+    () => warnings.some((w) => w.maxSeverity === 'special'),
+    [warnings]
+  );
+
   return {
     earthquakes,
     tsunamis,
+    warnings,
     recentQuake,
     hasTsunami,
+    hasWarning,
+    hasSpecialWarning,
     status,
     lastUpdated,
   };
