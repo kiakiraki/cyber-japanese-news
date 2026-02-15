@@ -14,6 +14,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '北海道',
     isBreaking: true,
     category: 'disaster',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/ff3030?text=EARTHQUAKE+Hokkaido',
   },
   {
     id: 'mock-02',
@@ -36,6 +37,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '東京都',
     isBreaking: false,
     category: 'politics',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/00ffff?text=Tokyo+Policy',
   },
   {
     id: 'mock-04',
@@ -47,6 +49,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '大阪府',
     isBreaking: true,
     category: 'disaster',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/ff3030?text=RAIN+Osaka',
   },
   {
     id: 'mock-05',
@@ -69,6 +72,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '福岡県',
     isBreaking: false,
     category: 'politics',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/00ffff?text=Fukuoka+Tech',
   },
   {
     id: 'mock-07',
@@ -135,6 +139,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '兵庫県',
     isBreaking: true,
     category: 'disaster',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/ff8800?text=FIRE+Kobe',
   },
   {
     id: 'mock-13',
@@ -190,6 +195,7 @@ export const MOCK_NEWS: NewsItem[] = [
     prefectureName: '鹿児島県',
     isBreaking: false,
     category: 'disaster',
+    ogpImageUrl: 'https://placehold.co/600x315/0a0a1a/ff8800?text=Sakurajima+Eruption',
   },
   {
     id: 'mock-18',

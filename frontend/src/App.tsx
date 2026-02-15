@@ -46,6 +46,7 @@ function App() {
             earthquakes={jmaData.earthquakes}
             recentQuake={jmaData.recentQuake}
             warnings={jmaData.warnings}
+            news={news}
           />
         </div>
 
