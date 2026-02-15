@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"npm run dev -w worker\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w worker && npm run build -w frontend"
+  },
+  "workspaces": [
+    "worker",
+    "frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
