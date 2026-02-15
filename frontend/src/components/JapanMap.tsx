@@ -8,6 +8,7 @@ import { PREFECTURE_MAP } from '../lib/prefectures';
 import { EpicenterMarker } from './EpicenterMarker';
 import { SeismicOverlay } from './SeismicOverlay';
 import { WarningOverlay } from './WarningOverlay';
+import { OgpCardLayer } from './OgpCardLayer';
 
 interface JapanMapProps {
   newsByPrefecture: Map<string, NewsItem[]>;
@@ -16,6 +17,7 @@ interface JapanMapProps {
   earthquakes?: EarthquakeItem[];
   recentQuake?: EarthquakeItem | null;
   warnings?: WarningAreaSummary[];
+  news?: NewsItem[];
 }
 
 interface PrefectureProperties {
@@ -41,6 +43,7 @@ export function JapanMap({
   earthquakes = [],
   recentQuake = null,
   warnings = [],
+  news = [],
 }: JapanMapProps) {
   const mapGroupRef = useRef<SVGGElement>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
@@ -236,6 +239,9 @@ export function JapanMap({
 
       {/* React-managed: seismic overlay (above warning) */}
       <SeismicOverlay recentQuake={recentQuake} prefecturePaths={prefecturePaths} />
+
+      {/* React-managed: OGP news cards */}
+      <OgpCardLayer news={news} projection={projection} />
 
       {/* React-managed: epicenter markers */}
       {epicenterPositions.map(({ earthquake, x, y }) => (

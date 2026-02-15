@@ -8,6 +8,7 @@ export interface NewsItem {
   prefectureName: string;
   isBreaking: boolean;
   category: 'disaster' | 'crime' | 'politics' | 'sports' | 'other';
+  ogpImageUrl?: string;
 }
 
 export interface NewsApiResponse {

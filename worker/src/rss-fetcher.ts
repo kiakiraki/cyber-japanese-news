@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import { classifyRegion } from './region-classifier';
+import { enrichWithOgp } from './ogp-fetcher';
 import type { NewsItem } from './types';
 
 const RSS_FEEDS = [
@@ -117,5 +118,5 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
   }
 
   allNews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  return allNews;
+  return enrichWithOgp(allNews);
 }
