@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-mono: 'JetBrains Mono', 'Noto Sans JP', monospace;
+  --font-sans: 'Noto Sans JP', sans-serif;
+  --color-cyber-bg: #0a0a0f;
+  --color-cyber-bg2: #12121a;
+  --color-cyber-panel: rgba(18, 18, 26, 0.85);
+  --color-cyber-cyan: #00ffff;
+  --color-cyber-cyan-dim: #00888a;
+  --color-cyber-magenta: #ff00ff;
+  --color-cyber-red: #ff3030;
+  --color-cyber-orange: #ff8800;
+  --color-cyber-text: #e0e0e0;
+  --color-cyber-text-dim: #888899;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'Noto Sans JP', monospace;
+  background-color: var(--color-cyber-bg);
+  color: var(--color-cyber-text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cyber-bg2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-cyan-dim);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyber-cyan);
+}
