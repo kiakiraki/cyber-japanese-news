@@ -4,6 +4,8 @@
 
 NHK RSSフィードからニュースを取得し、記事タイトルのキーワードマッチングで都道府県に分類。速報ニュースは派手なエフェクトで演出。
 
+P2P地震情報 API経由で地震・津波データも取得し、震源パルスアニメーション・都道府県別震度ハイライトを地図上に表示。
+
 ![Screenshot](docs/screenshot.png)
 
 ## 技術スタック
@@ -15,6 +17,7 @@ NHK RSSフィードからニュースを取得し、記事タイトルのキー�
 | アニメーション | Framer Motion |
 | バックエンド | Cloudflare Workers |
 | RSSパース | fast-xml-parser |
+| 地震データ | P2P地震情報 JSON API v2 |
 
 ## 機能
 
@@ -23,17 +26,33 @@ NHK RSSフィードからニュースを取得し、記事タイトルのキー�
 - Breaking News検出（速報キーワード + 30分以内の記事）
 - カテゴリ分類（災害・事件・政治・スポーツ・その他）
 - 都道府県クリックでフィルタリング
-- 60秒間隔の自動更新
+- 60秒間隔の自動更新（ニュース）
+- 地震情報の地図表示（震源マーカー・都道府県震度ハイライト）
+- 津波情報バナー（大津波警報・津波警報・津波注意報）
+- 震度4以上の地震でBreaking演出と連携
+- 30秒間隔の地震データ自動更新
 
 ## セットアップ
 
 ```bash
-# フロントエンド
+# 依存インストール（ルートで一括）
+npm install
+
+# Worker + Frontend を同時起動
+npm run dev
+```
+
+Worker は `http://localhost:8787`、Frontend は `http://localhost:5173` で起動します。
+
+### 個別起動
+
+```bash
+# フロントエンドのみ
 cd frontend
 npm install
 npm run dev          # http://localhost:5173
 
-# バックエンド
+# バックエンドのみ
 cd worker
 npm install
 npx wrangler dev     # http://localhost:8787
@@ -54,6 +73,7 @@ VITE_API_URL=http://localhost:8787  # Worker APIのURL
 
 ```
 cyber-japanese-news/
+├── package.json             # ルート（npm workspaces + concurrently）
 ├── frontend/                # Vite + React + TypeScript
 │   └── src/
 │       ├── components/      # UIコンポーネント
@@ -64,6 +84,7 @@ cyber-japanese-news/
 │   └── src/
 │       ├── index.ts         # APIエントリポイント
 │       ├── rss-fetcher.ts   # RSSフェッチ + パース
+│       ├── jma-fetcher.ts   # P2P地震情報フェッチ
 │       └── region-classifier.ts  # 都道府県分類
 └── docs/
     └── screenshot.png
@@ -74,4 +95,10 @@ cyber-japanese-news/
 ```
 GET /api/news                    # 全ニュース取得
 GET /api/news?prefecture=13      # 都道府県フィルタ（13=東京都）
+GET /api/jma                     # 地震・津波情報取得
 ```
+
+## データソース
+
+- ニュース: [NHK RSS](https://www3.nhk.or.jp/rss/news/cat0.xml)
+- 地震情報: [P2P地震情報](https://www.p2pquake.net/)（気象庁データ）
