@@ -1,14 +1,19 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { NewsItem } from '../types/news';
+import type { EarthquakeItem } from '../types/jma';
 import { PREFECTURE_MAP } from '../lib/prefectures';
+import { EpicenterMarker } from './EpicenterMarker';
+import { SeismicOverlay } from './SeismicOverlay';
 
 interface JapanMapProps {
   newsByPrefecture: Map<string, NewsItem[]>;
   selectedPrefecture: string | null;
   onSelectPrefecture: (code: string | null) => void;
+  earthquakes?: EarthquakeItem[];
+  recentQuake?: EarthquakeItem | null;
 }
 
 interface PrefectureProperties {
@@ -17,9 +22,29 @@ interface PrefectureProperties {
   id: number;
 }
 
-export function JapanMap({ newsByPrefecture, selectedPrefecture, onSelectPrefecture }: JapanMapProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+const WIDTH = 800;
+const HEIGHT = 800;
+
+function createProjection() {
+  return d3.geoMercator()
+    .center([138, 35])
+    .scale(1500)
+    .translate([WIDTH / 2, HEIGHT / 2]);
+}
+
+export function JapanMap({
+  newsByPrefecture,
+  selectedPrefecture,
+  onSelectPrefecture,
+  earthquakes = [],
+  recentQuake = null,
+}: JapanMapProps) {
+  const mapGroupRef = useRef<SVGGElement>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
+  const [prefecturePaths, setPrefecturePaths] = useState<Map<string, string>>(new Map());
+
+  const projection = useMemo(() => createProjection(), []);
+  const pathGenerator = useMemo(() => d3.geoPath().projection(projection), [projection]);
 
   useEffect(() => {
     fetch('/japan-topo.json')
@@ -34,34 +59,33 @@ export function JapanMap({ newsByPrefecture, selectedPrefecture, onSelectPrefect
     [selectedPrefecture, onSelectPrefecture]
   );
 
+  // D3 rendering: base map + news markers
   useEffect(() => {
-    if (!topology || !svgRef.current) return;
+    if (!topology || !mapGroupRef.current) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-
-    const width = 800;
-    const height = 800;
-
-    const projection = d3.geoMercator()
-      .center([138, 35])
-      .scale(1500)
-      .translate([width / 2, height / 2]);
-
-    const path = d3.geoPath().projection(projection);
+    const g = d3.select(mapGroupRef.current);
+    g.selectAll('*').remove();
 
     const geojson = topojson.feature(
       topology,
       topology.objects.japan as GeometryCollection<PrefectureProperties>
     );
 
-    const g = svg.append('g');
+    // Build prefecture name -> path 'd' mapping for SeismicOverlay
+    const pathMap = new Map<string, string>();
+    for (const feature of geojson.features) {
+      const d = pathGenerator(feature as never);
+      if (d && feature.properties.nam_ja) {
+        pathMap.set(feature.properties.nam_ja, d);
+      }
+    }
+    setPrefecturePaths(pathMap);
 
     // Prefecture paths
     g.selectAll<SVGPathElement, (typeof geojson.features)[number]>('path')
       .data(geojson.features)
       .join('path')
-      .attr('d', path as never)
+      .attr('d', pathGenerator as never)
       .attr('fill', (d) => {
         const code = String(d.properties.id).padStart(2, '0');
         if (code === selectedPrefecture) return 'rgba(0, 255, 255, 0.25)';
@@ -92,20 +116,18 @@ export function JapanMap({ newsByPrefecture, selectedPrefecture, onSelectPrefect
         handleClick(code);
       });
 
-    // News markers
-    const defs = svg.append('defs');
+    // News markers (defs)
+    const defs = g.append('defs');
 
-    // Pulse animation for normal markers
     const pulseNormal = defs.append('radialGradient').attr('id', 'pulse-normal');
     pulseNormal.append('stop').attr('offset', '0%').attr('stop-color', '#00ffff').attr('stop-opacity', 0.8);
     pulseNormal.append('stop').attr('offset', '100%').attr('stop-color', '#00ffff').attr('stop-opacity', 0);
 
-    // Pulse animation for breaking markers
     const pulseBreaking = defs.append('radialGradient').attr('id', 'pulse-breaking');
     pulseBreaking.append('stop').attr('offset', '0%').attr('stop-color', '#ff3030').attr('stop-opacity', 0.9);
     pulseBreaking.append('stop').attr('offset', '100%').attr('stop-color', '#ff8800').attr('stop-opacity', 0);
 
-    const markersGroup = svg.append('g').attr('class', 'markers');
+    const markersGroup = g.append('g').attr('class', 'markers');
 
     for (const [code, items] of newsByPrefecture) {
       if (code === 'national') continue;
@@ -177,7 +199,7 @@ export function JapanMap({ newsByPrefecture, selectedPrefecture, onSelectPrefect
           .attr('y', y + 1)
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
-          .attr('fill', hasBreaking ? '#000' : '#000')
+          .attr('fill', '#000')
           .attr('font-size', Math.max(size - 2, 8))
           .attr('font-family', 'JetBrains Mono, monospace')
           .attr('font-weight', 'bold')
@@ -185,14 +207,39 @@ export function JapanMap({ newsByPrefecture, selectedPrefecture, onSelectPrefect
           .text(items.length);
       }
     }
-  }, [topology, newsByPrefecture, selectedPrefecture, handleClick]);
+  }, [topology, newsByPrefecture, selectedPrefecture, handleClick, projection, pathGenerator]);
+
+  // Compute epicenter positions
+  const epicenterPositions = useMemo(() => {
+    return earthquakes
+      .filter((eq) => eq.hypocenter.latitude && eq.hypocenter.longitude)
+      .map((eq) => {
+        const coords = projection([eq.hypocenter.longitude, eq.hypocenter.latitude]);
+        return { earthquake: eq, x: coords?.[0] ?? 0, y: coords?.[1] ?? 0 };
+      });
+  }, [earthquakes, projection]);
 
   return (
     <svg
-      ref={svgRef}
-      viewBox="0 0 800 800"
+      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       className="w-full h-full"
       style={{ maxHeight: 'calc(100vh - 60px)' }}
-    />
+    >
+      {/* D3-managed: base map + news markers */}
+      <g ref={mapGroupRef} />
+
+      {/* React-managed: seismic overlay */}
+      <SeismicOverlay recentQuake={recentQuake} prefecturePaths={prefecturePaths} />
+
+      {/* React-managed: epicenter markers */}
+      {epicenterPositions.map(({ earthquake, x, y }) => (
+        <EpicenterMarker
+          key={earthquake.id}
+          earthquake={earthquake}
+          x={x}
+          y={y}
+        />
+      ))}
+    </svg>
   );
 }

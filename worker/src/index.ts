@@ -1,5 +1,6 @@
 import { fetchAllNews } from './rss-fetcher';
-import type { NewsApiResponse } from './types';
+import { fetchJmaData } from './jma-fetcher';
+import type { NewsApiResponse, JmaApiResponse } from './types';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -47,6 +48,48 @@ export default {
             },
           }
         );
+      }
+    }
+
+    if (url.pathname === '/api/jma' && request.method === 'GET') {
+      try {
+        const { earthquakes, tsunamis } = await fetchJmaData();
+
+        const body: JmaApiResponse = {
+          earthquakes,
+          tsunamis,
+          meta: {
+            lastUpdated: new Date().toISOString(),
+            source: 'P2P地震情報',
+            status: 'ok',
+          },
+        };
+
+        return new Response(JSON.stringify(body), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=60',
+            ...CORS_HEADERS,
+          },
+        });
+      } catch (error) {
+        const body: JmaApiResponse = {
+          earthquakes: [],
+          tsunamis: [],
+          meta: {
+            lastUpdated: new Date().toISOString(),
+            source: 'P2P地震情報',
+            status: 'error',
+          },
+        };
+
+        return new Response(JSON.stringify(body), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            ...CORS_HEADERS,
+          },
+        });
       }
     }
 

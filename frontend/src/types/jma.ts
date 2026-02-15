@@ -1,22 +1,3 @@
-export interface NewsItem {
-  id: string;
-  title: string;
-  link: string;
-  source: string;
-  publishedAt: string;
-  prefectureCode: string;
-  prefectureName: string;
-  isBreaking: boolean;
-  category: 'disaster' | 'crime' | 'politics' | 'sports' | 'other';
-}
-
-export interface NewsApiResponse {
-  news: NewsItem[];
-  fetchedAt: string;
-}
-
-// --- JMA (P2P地震情報) Types ---
-
 export interface PrefectureIntensity {
   pref: string;
   maxScale: number;
@@ -63,3 +44,5 @@ export interface JmaApiResponse {
     status: 'ok' | 'error';
   };
 }
+
+export type SeismicIntensity = 10 | 20 | 30 | 40 | 45 | 50 | 55 | 60 | 70;
