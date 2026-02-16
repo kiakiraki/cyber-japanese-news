@@ -46,8 +46,9 @@ export function useBreakingDetection(
   warnings: WarningAreaSummary[] = [],
 ) {
   const [breakingQueue, setBreakingQueue] = useState<BreakingItem[]>([]);
-  const [currentBreaking, setCurrentBreaking] = useState<BreakingItem | null>(null);
   const shownIdsRef = useRef(new Set<string>());
+
+  const currentBreaking = breakingQueue[0] ?? null;
 
   // News breaking items
   useEffect(() => {
@@ -110,27 +111,19 @@ export function useBreakingDetection(
     }
   }, [warnings]);
 
-  // Queue processor
-  useEffect(() => {
-    if (!currentBreaking && breakingQueue.length > 0) {
-      setCurrentBreaking(breakingQueue[0]);
-      setBreakingQueue((prev) => prev.slice(1));
-    }
-  }, [currentBreaking, breakingQueue]);
-
-  // Auto-dismiss timer
+  // Auto-dismiss timer: pop the first item after display duration
   useEffect(() => {
     if (!currentBreaking) return;
 
     const timer = setTimeout(() => {
-      setCurrentBreaking(null);
+      setBreakingQueue((prev) => prev.slice(1));
     }, BREAKING_DISPLAY_DURATION);
 
     return () => clearTimeout(timer);
   }, [currentBreaking]);
 
   const dismissCurrent = useCallback(() => {
-    setCurrentBreaking(null);
+    setBreakingQueue((prev) => prev.slice(1));
   }, []);
 
   return {

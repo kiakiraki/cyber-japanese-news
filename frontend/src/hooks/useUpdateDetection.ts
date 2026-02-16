@@ -124,7 +124,7 @@ export function useUpdateDetection(
       const newArticles = news.filter((n) => newIds.includes(n.id));
       const headline = newArticles[0]?.title;
 
-      fireEvent({
+      queueMicrotask(() => fireEvent({
         id: `news-${Date.now()}`,
         level,
         timestamp: Date.now(),
@@ -132,7 +132,7 @@ export function useUpdateDetection(
         prefectureCodes: [],
         headline: headline ? `${headline}${newIds.length > 1 ? ` 他${newIds.length - 1}件` : ''}` : undefined,
         newArticleCount: newIds.length,
-      });
+      }));
     }
 
     prevNewsIdsRef.current = currentIds;
@@ -154,7 +154,7 @@ export function useUpdateDetection(
       const level = determineEarthquakeLevel(strongest.maxScale);
       const scaleLabel = getScaleInfo(strongest.maxScale).label;
 
-      fireEvent({
+      queueMicrotask(() => fireEvent({
         id: `eq-${strongest.id}`,
         level,
         timestamp: Date.now(),
@@ -163,7 +163,7 @@ export function useUpdateDetection(
         headline: `地震速報: ${strongest.hypocenter.name} M${strongest.hypocenter.magnitude} 最大${scaleLabel}`,
         magnitude: strongest.hypocenter.magnitude,
         maxScale: strongest.maxScale,
-      });
+      }));
     }
 
     prevEarthquakeIdsRef.current = currentIds;
@@ -185,14 +185,14 @@ export function useUpdateDetection(
       const level = activeTsunami.cancelled ? 'incoming' as EffectLevel : determineTsunamiLevel(activeTsunami.areas);
       const areaNames = activeTsunami.areas.slice(0, 3).map((a) => a.name).join('、');
 
-      fireEvent({
+      queueMicrotask(() => fireEvent({
         id: `ts-${activeTsunami.id}`,
         level,
         timestamp: Date.now(),
         source: 'tsunami',
         prefectureCodes: [],
         headline: `津波情報: ${areaNames}`,
-      });
+      }));
     }
 
     prevTsunamiIdsRef.current = currentIds;
@@ -222,7 +222,7 @@ export function useUpdateDetection(
       const level = determineWarningLevel(maxSeverity);
       const topWarning = warnings.find((w) => w.maxSeverity === maxSeverity);
 
-      fireEvent({
+      queueMicrotask(() => fireEvent({
         id: `warn-${Date.now()}`,
         level,
         timestamp: Date.now(),
@@ -231,7 +231,7 @@ export function useUpdateDetection(
         headline: topWarning
           ? `${topWarning.prefectureName} ${topWarning.activeWarnings[0]?.name ?? '気象警報'}`
           : '気象警報発表',
-      });
+      }));
     }
 
     prevWarningKeysRef.current = currentKeys;

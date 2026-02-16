@@ -94,9 +94,12 @@ export function useJmaData() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const initial = setTimeout(fetchData, 0);
     const interval = setInterval(fetchData, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [fetchData]);
 
   const displayQuakes = useMemo(() => filterRecentQuakes(earthquakes), [earthquakes]);

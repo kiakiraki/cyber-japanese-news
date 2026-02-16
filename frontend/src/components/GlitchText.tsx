@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface GlitchTextProps {
@@ -27,6 +28,12 @@ const intensityConfig = {
 
 export function GlitchText({ text, intensity = 'low', className = '', as: Tag = 'div' }: GlitchTextProps) {
   const config = intensityConfig[intensity];
+  const [clipRands] = useState(() => [
+    Math.random() * 50,
+    Math.random() * 50,
+    Math.random() * 80,
+    Math.random() * 20,
+  ]);
 
   return (
     <div className={`relative inline-block ${className}`}>
@@ -76,9 +83,9 @@ export function GlitchText({ text, intensity = 'low', className = '', as: Tag = 
         animate={{
           clipPath: [
             'inset(0 0 100% 0)',
-            `inset(${Math.random() * 50}% 0 ${Math.random() * 50}% 0)`,
+            `inset(${clipRands[0]}% 0 ${clipRands[1]}% 0)`,
             'inset(0 0 100% 0)',
-            `inset(${Math.random() * 80}% 0 ${Math.random() * 20}% 0)`,
+            `inset(${clipRands[2]}% 0 ${clipRands[3]}% 0)`,
             'inset(0 0 100% 0)',
           ],
           x: [0, -config.offset * 2, config.offset, 0],

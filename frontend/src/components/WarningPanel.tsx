@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { WarningAreaSummary } from '../types/jma';
 import { severityRank, SEVERITY_COLORS } from '../lib/warningCodes';
 import { PREFECTURE_MAP } from '../lib/prefectures';
@@ -18,16 +18,18 @@ function sortWarnings(warnings: WarningAreaSummary[]): WarningAreaSummary[] {
 }
 
 export function WarningPanel({ warnings, expanded, selectedPrefecture }: WarningPanelProps) {
-  const [showAdvisory, setShowAdvisory] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [showAdvisory, setShowAdvisory] = useState(expanded ?? false);
+  const [isOpen, setIsOpen] = useState(expanded ?? false);
+  const [prevExpanded, setPrevExpanded] = useState(expanded);
 
-  // Sync with external expanded prop
-  useEffect(() => {
+  // Sync with external expanded prop (derived state from props pattern)
+  if (expanded !== prevExpanded) {
+    setPrevExpanded(expanded);
     if (expanded !== undefined) {
       setIsOpen(expanded);
       setShowAdvisory(expanded);
     }
-  }, [expanded]);
+  }
 
   // Filter by selected prefecture
   const prefName = selectedPrefecture

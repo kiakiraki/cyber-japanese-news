@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { EarthquakeItem } from '../types/jma';
 import { getScaleInfo } from '../lib/seismicScale';
 
@@ -7,10 +8,12 @@ interface SeismicOverlayProps {
 }
 
 export function SeismicOverlay({ recentQuake, prefecturePaths }: SeismicOverlayProps) {
+  const [now] = useState(() => Date.now());
+
   if (!recentQuake) return null;
 
   const elapsedHours =
-    (Date.now() - new Date(recentQuake.time).getTime()) / (60 * 60 * 1000);
+    (now - new Date(recentQuake.time).getTime()) / (60 * 60 * 1000);
   const timeFade = Math.max(0, 0.5 * (1 - elapsedHours / 6));
 
   if (timeFade <= 0) return null;
