@@ -9,6 +9,8 @@ import { EpicenterMarker } from './EpicenterMarker';
 import { SeismicOverlay } from './SeismicOverlay';
 import { WarningOverlay } from './WarningOverlay';
 import { OgpCardLayer } from './OgpCardLayer';
+import { ZoomControls } from './ZoomControls';
+import { useMapZoom, getMaxCardsForTier } from '../hooks/useMapZoom';
 
 interface JapanMapProps {
   newsByPrefecture: Map<string, NewsItem[]>;
@@ -30,6 +32,8 @@ interface PrefectureProperties {
 const WIDTH = 800;
 const HEIGHT = 800;
 
+const CLICK_THRESHOLD = 5; // pixels — below this distance is a click, above is a drag
+
 function createProjection() {
   return d3.geoMercator()
     .center([138, 35])
@@ -47,12 +51,24 @@ export function JapanMap({
   news = [],
   pulsePrefectures = [],
 }: JapanMapProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const mapGroupRef = useRef<SVGGElement>(null);
   const [topology, setTopology] = useState<Topology | null>(null);
   const [prefecturePaths, setPrefecturePaths] = useState<Map<string, string>>(new Map());
 
+  // Track mouse position for click vs drag detection
+  const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+
   const projection = useMemo(() => createProjection(), []);
   const pathGenerator = useMemo(() => d3.geoPath().projection(projection), [projection]);
+
+  const { zoomState, zoomIn, zoomOut, resetZoom, zoomToPoint, tier } = useMapZoom(svgRef, {
+    width: WIDTH,
+    height: HEIGHT,
+  });
+
+  const inverseScale = 1 / zoomState.k;
+  const maxCards = getMaxCardsForTier(tier);
 
   useEffect(() => {
     fetch('/japan-topo.json')
@@ -60,11 +76,42 @@ export function JapanMap({
       .then((data) => setTopology(data));
   }, []);
 
+  // Handle prefecture click with auto-zoom
   const handleClick = useCallback(
     (code: string) => {
-      onSelectPrefecture(selectedPrefecture === code ? null : code);
+      if (selectedPrefecture === code) {
+        // Deselect + reset zoom
+        onSelectPrefecture(null);
+        resetZoom();
+      } else {
+        // Select + zoom to prefecture
+        onSelectPrefecture(code);
+        const pref = PREFECTURE_MAP.get(code);
+        if (pref) {
+          const coords = projection([pref.lng, pref.lat]);
+          if (coords) {
+            zoomToPoint(coords[0], coords[1], 4);
+          }
+        }
+      }
     },
-    [selectedPrefecture, onSelectPrefecture]
+    [selectedPrefecture, onSelectPrefecture, resetZoom, zoomToPoint, projection]
+  );
+
+  // Click on empty space → deselect + reset zoom
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (mouseDownPos.current) {
+        const dx = e.clientX - mouseDownPos.current.x;
+        const dy = e.clientY - mouseDownPos.current.y;
+        if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
+      }
+      if (selectedPrefecture) {
+        onSelectPrefecture(null);
+        resetZoom();
+      }
+    },
+    [selectedPrefecture, onSelectPrefecture, resetZoom]
   );
 
   // D3 rendering: base map + news markers
@@ -102,6 +149,7 @@ export function JapanMap({
       })
       .attr('stroke', '#00ffff')
       .attr('stroke-width', 0.5)
+      .attr('data-base-stroke-width', 0.5)
       .attr('cursor', 'pointer')
       .style('transition', 'fill 0.3s ease')
       .on('mouseenter', function (_, d) {
@@ -119,7 +167,14 @@ export function JapanMap({
           d3.select(this).attr('fill', hasNews ? 'rgba(0, 255, 255, 0.06)' : 'rgba(0, 255, 255, 0.02)');
         }
       })
-      .on('click', (_, d) => {
+      .on('click', (event: MouseEvent, d) => {
+        event.stopPropagation();
+        // Check if this was a drag rather than a click
+        if (mouseDownPos.current) {
+          const dx = event.clientX - mouseDownPos.current.x;
+          const dy = event.clientY - mouseDownPos.current.y;
+          if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
+        }
         const code = String(d.properties.id).padStart(2, '0');
         handleClick(code);
       });
@@ -144,7 +199,7 @@ export function JapanMap({
 
       const [x, y] = projection([pref.lng, pref.lat]) ?? [0, 0];
       const hasBreaking = items.some((item) => item.isBreaking);
-      const size = Math.min(4 + items.length * 2, 16);
+      const baseSize = Math.min(4 + items.length * 2, 16);
 
       // Ripple effect for breaking
       if (hasBreaking) {
@@ -153,14 +208,15 @@ export function JapanMap({
             .append('circle')
             .attr('cx', x)
             .attr('cy', y)
-            .attr('r', size)
+            .attr('r', baseSize)
             .attr('fill', 'none')
             .attr('stroke', '#ff3030')
             .attr('stroke-width', 1)
+            .attr('data-base-stroke-width', 1)
             .attr('opacity', 0)
             .append('animate')
             .attr('attributeName', 'r')
-            .attr('values', `${size};${size + 20}`)
+            .attr('values', `${baseSize};${baseSize + 20}`)
             .attr('dur', '2s')
             .attr('begin', `${i * 0.6}s`)
             .attr('repeatCount', 'indefinite')
@@ -180,11 +236,12 @@ export function JapanMap({
         .append('circle')
         .attr('cx', x)
         .attr('cy', y)
-        .attr('r', size + 4)
+        .attr('r', baseSize + 4)
+        .attr('data-base-r', baseSize + 4)
         .attr('fill', `url(#${hasBreaking ? 'pulse-breaking' : 'pulse-normal'})`)
         .append('animate')
         .attr('attributeName', 'r')
-        .attr('values', `${size + 2};${size + 8};${size + 2}`)
+        .attr('values', `${baseSize + 2};${baseSize + 8};${baseSize + 2}`)
         .attr('dur', hasBreaking ? '1s' : '3s')
         .attr('repeatCount', 'indefinite');
 
@@ -193,11 +250,20 @@ export function JapanMap({
         .append('circle')
         .attr('cx', x)
         .attr('cy', y)
-        .attr('r', size)
+        .attr('r', baseSize)
+        .attr('data-base-r', baseSize)
         .attr('fill', hasBreaking ? '#ff3030' : '#00ffff')
         .attr('opacity', 0.9)
         .attr('cursor', 'pointer')
-        .on('click', () => handleClick(code));
+        .on('click', (event: MouseEvent) => {
+          event.stopPropagation();
+          if (mouseDownPos.current) {
+            const dx = event.clientX - mouseDownPos.current.x;
+            const dy = event.clientY - mouseDownPos.current.y;
+            if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
+          }
+          handleClick(code);
+        });
 
       // Count label
       if (items.length > 1) {
@@ -208,7 +274,8 @@ export function JapanMap({
           .attr('text-anchor', 'middle')
           .attr('dominant-baseline', 'middle')
           .attr('fill', '#000')
-          .attr('font-size', Math.max(size - 2, 8))
+          .attr('font-size', Math.max(baseSize - 2, 8))
+          .attr('data-base-font', Math.max(baseSize - 2, 8))
           .attr('font-family', 'JetBrains Mono, monospace')
           .attr('font-weight', 'bold')
           .attr('pointer-events', 'none')
@@ -216,6 +283,35 @@ export function JapanMap({
       }
     }
   }, [topology, newsByPrefecture, selectedPrefecture, handleClick, projection, pathGenerator]);
+
+  // Inverse-scale correction for D3-managed elements when zoom changes
+  useEffect(() => {
+    if (!mapGroupRef.current) return;
+    const g = d3.select(mapGroupRef.current);
+    const k = zoomState.k;
+    const inv = 1 / k;
+
+    // Stroke widths
+    g.selectAll<SVGElement, unknown>('[data-base-stroke-width]').each(function () {
+      const el = d3.select(this);
+      const base = parseFloat(el.attr('data-base-stroke-width'));
+      el.attr('stroke-width', base * inv);
+    });
+
+    // Circle radii (static, not animated)
+    g.selectAll<SVGCircleElement, unknown>('circle[data-base-r]').each(function () {
+      const el = d3.select(this);
+      const base = parseFloat(el.attr('data-base-r'));
+      el.attr('r', base * inv);
+    });
+
+    // Font sizes
+    g.selectAll<SVGTextElement, unknown>('text[data-base-font]').each(function () {
+      const el = d3.select(this);
+      const base = parseFloat(el.attr('data-base-font'));
+      el.attr('font-size', base * inv);
+    });
+  }, [zoomState.k]);
 
   // Pulse rings for effect prefectures
   useEffect(() => {
@@ -261,33 +357,68 @@ export function JapanMap({
       });
   }, [earthquakes, projection]);
 
+  const transformStr = `translate(${zoomState.x}, ${zoomState.y}) scale(${zoomState.k})`;
+
   return (
-    <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full h-full"
-      style={{ maxHeight: 'calc(100vh - 60px)' }}
-    >
-      {/* D3-managed: base map + news markers */}
-      <g ref={mapGroupRef} />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full h-full"
+        style={{ maxHeight: 'calc(100vh - 60px)', touchAction: 'none', overflow: 'hidden' }}
+        onMouseDown={(e) => {
+          mouseDownPos.current = { x: e.clientX, y: e.clientY };
+        }}
+      >
+        {/* Zoom transform wrapper — all map layers inside */}
+        <g transform={transformStr}>
+          {/* Transparent background — click to deselect */}
+          <rect
+            x={-WIDTH}
+            y={-HEIGHT}
+            width={WIDTH * 3}
+            height={HEIGHT * 3}
+            fill="transparent"
+            onClick={handleBackgroundClick}
+          />
 
-      {/* React-managed: warning overlay (below seismic) */}
-      <WarningOverlay warnings={warnings} prefecturePaths={prefecturePaths} />
+          {/* D3-managed: base map + news markers */}
+          <g ref={mapGroupRef} />
 
-      {/* React-managed: seismic overlay (above warning) */}
-      <SeismicOverlay recentQuake={recentQuake} prefecturePaths={prefecturePaths} />
+          {/* React-managed: warning overlay (below seismic) */}
+          <WarningOverlay warnings={warnings} prefecturePaths={prefecturePaths} />
 
-      {/* React-managed: OGP news cards */}
-      <OgpCardLayer news={news} projection={projection} />
+          {/* React-managed: seismic overlay (above warning) */}
+          <SeismicOverlay recentQuake={recentQuake} prefecturePaths={prefecturePaths} />
 
-      {/* React-managed: epicenter markers */}
-      {epicenterPositions.map(({ earthquake, x, y }) => (
-        <EpicenterMarker
-          key={earthquake.id}
-          earthquake={earthquake}
-          x={x}
-          y={y}
-        />
-      ))}
-    </svg>
+          {/* React-managed: OGP news cards */}
+          <OgpCardLayer
+            news={news}
+            projection={projection}
+            inverseScale={inverseScale}
+            maxCards={maxCards}
+          />
+
+          {/* React-managed: epicenter markers */}
+          {epicenterPositions.map(({ earthquake, x, y }) => (
+            <EpicenterMarker
+              key={earthquake.id}
+              earthquake={earthquake}
+              x={x}
+              y={y}
+              inverseScale={inverseScale}
+            />
+          ))}
+        </g>
+      </svg>
+
+      {/* Zoom controls — outside SVG as HTML overlay */}
+      <ZoomControls
+        tier={tier}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
+        onReset={resetZoom}
+      />
+    </div>
   );
 }
