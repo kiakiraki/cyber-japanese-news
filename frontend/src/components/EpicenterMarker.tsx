@@ -29,7 +29,8 @@ export function EpicenterMarker({ earthquake, x, y, inverseScale = 1 }: Epicente
   const dotSize = baseDotSize * inverseScale;
   const scaleInfo = getScaleInfo(earthquake.maxScale);
 
-  const elapsedHours = (Date.now() - new Date(earthquake.time).getTime()) / (60 * 60 * 1000);
+  const [now] = useState(() => Date.now());
+  const elapsedHours = (now - new Date(earthquake.time).getTime()) / (60 * 60 * 1000);
   const isOld = elapsedHours > 6;
   const baseOpacity = isOld ? 0.3 : 0.9;
 
