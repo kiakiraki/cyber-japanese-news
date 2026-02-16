@@ -6,6 +6,7 @@ interface EpicenterMarkerProps {
   earthquake: EarthquakeItem;
   x: number;
   y: number;
+  inverseScale?: number;
 }
 
 function timeAgo(dateStr: string): string {
@@ -19,17 +20,26 @@ function timeAgo(dateStr: string): string {
   return `${days}日前`;
 }
 
-export function EpicenterMarker({ earthquake, x, y }: EpicenterMarkerProps) {
+export function EpicenterMarker({ earthquake, x, y, inverseScale = 1 }: EpicenterMarkerProps) {
   const [hovered, setHovered] = useState(false);
 
   const mag = earthquake.hypocenter.magnitude;
   const color = getEpicenterColor(mag);
-  const dotSize = getEpicenterDotSize(mag);
+  const baseDotSize = getEpicenterDotSize(mag);
+  const dotSize = baseDotSize * inverseScale;
   const scaleInfo = getScaleInfo(earthquake.maxScale);
 
   const elapsedHours = (Date.now() - new Date(earthquake.time).getTime()) / (60 * 60 * 1000);
   const isOld = elapsedHours > 6;
   const baseOpacity = isOld ? 0.3 : 0.9;
+
+  const tooltipWidth = 280 * inverseScale;
+  const tooltipHeight = 36 * inverseScale;
+  const tooltipOffsetX = 12 * inverseScale;
+  const tooltipOffsetY = 40 * inverseScale;
+  const tooltipFontSize = 11 * inverseScale;
+  const tooltipTextOffsetX = 18 * inverseScale;
+  const tooltipTextOffsetY = 18 * inverseScale;
 
   return (
     <g
@@ -47,12 +57,12 @@ export function EpicenterMarker({ earthquake, x, y }: EpicenterMarkerProps) {
             r={dotSize}
             fill="none"
             stroke={color}
-            strokeWidth={1}
+            strokeWidth={1 * inverseScale}
             opacity={0}
           >
             <animate
               attributeName="r"
-              values={`${dotSize};${dotSize + 25}`}
+              values={`${dotSize};${dotSize + 25 * inverseScale}`}
               dur="2s"
               begin={`${i * 0.4}s`}
               repeatCount="indefinite"
@@ -80,20 +90,20 @@ export function EpicenterMarker({ earthquake, x, y }: EpicenterMarkerProps) {
       {hovered && (
         <g>
           <rect
-            x={x + 12}
-            y={y - 40}
-            width={280}
-            height={36}
-            rx={4}
+            x={x + tooltipOffsetX}
+            y={y - tooltipOffsetY}
+            width={tooltipWidth}
+            height={tooltipHeight}
+            rx={4 * inverseScale}
             fill="rgba(10, 10, 15, 0.95)"
             stroke={color}
-            strokeWidth={0.5}
+            strokeWidth={0.5 * inverseScale}
           />
           <text
-            x={x + 18}
-            y={y - 18}
+            x={x + tooltipTextOffsetX}
+            y={y - tooltipTextOffsetY}
             fill="#e0e0e0"
-            fontSize={11}
+            fontSize={tooltipFontSize}
             fontFamily="JetBrains Mono, monospace"
           >
             {earthquake.hypocenter.name} M{mag} 深さ{earthquake.hypocenter.depth}km / 最大{scaleInfo.label} | {timeAgo(earthquake.time)}
