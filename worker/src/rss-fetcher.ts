@@ -7,6 +7,8 @@ const RSS_FEEDS = [
   'https://www3.nhk.or.jp/rss/news/cat0.xml',
   'https://www3.nhk.or.jp/rss/news/cat1.xml',
   'https://www3.nhk.or.jp/rss/news/cat3.xml',
+  'https://www3.nhk.or.jp/rss/news/cat4.xml',
+  'https://www3.nhk.or.jp/rss/news/cat5.xml',
 ];
 
 const BREAKING_KEYWORDS = [
