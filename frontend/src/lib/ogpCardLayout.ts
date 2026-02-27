@@ -45,7 +45,7 @@ export function computeOgpCardPlacements(
 ): OgpCardPlacement[] {
   // Filter: must have ogpImageUrl, not national, one per prefecture
   const candidates = news.filter(
-    (item) => item.ogpImageUrl && item.prefectureCode !== 'national',
+    (item) => item.ogpImageUrl && item.prefectureCode !== 'national' && item.prefectureCode !== 'international',
   );
 
   // Deduplicate by prefecture (keep latest per prefecture — already sorted by publishedAt desc)

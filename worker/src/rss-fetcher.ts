@@ -3,12 +3,19 @@ import { classifyRegion } from './region-classifier';
 import { enrichWithOgp } from './ogp-fetcher';
 import type { NewsItem } from './types';
 
-const RSS_FEEDS = [
-  'https://www3.nhk.or.jp/rss/news/cat0.xml',
-  'https://www3.nhk.or.jp/rss/news/cat1.xml',
-  'https://www3.nhk.or.jp/rss/news/cat3.xml',
-  'https://www3.nhk.or.jp/rss/news/cat4.xml',
-  'https://www3.nhk.or.jp/rss/news/cat5.xml',
+interface FeedConfig {
+  url: string;
+  source: string;
+}
+
+const RSS_FEEDS: FeedConfig[] = [
+  { url: 'https://www3.nhk.or.jp/rss/news/cat0.xml', source: 'nhk' },
+  { url: 'https://www3.nhk.or.jp/rss/news/cat1.xml', source: 'nhk' },
+  { url: 'https://www3.nhk.or.jp/rss/news/cat3.xml', source: 'nhk' },
+  { url: 'https://www3.nhk.or.jp/rss/news/cat4.xml', source: 'nhk' },
+  { url: 'https://www3.nhk.or.jp/rss/news/cat5.xml', source: 'nhk' },
+  { url: 'https://www.jiji.com/rss/ranking.rdf', source: 'jiji' },
+  { url: 'https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja', source: 'google-news' },
 ];
 
 const BREAKING_KEYWORDS = [
@@ -59,6 +66,7 @@ interface RssItem {
   link?: string;
   pubDate?: string;
   'dc:date'?: string;
+  source?: string | { '#text'?: string; '@_url'?: string };
 }
 
 function extractText(value: string | { __cdata?: string } | undefined): string {
@@ -68,6 +76,21 @@ function extractText(value: string | { __cdata?: string } | undefined): string {
   return '';
 }
 
+export function cleanGoogleNewsTitle(title: string): string {
+  return title.replace(/ - [^-]+$/, '');
+}
+
+export function extractSourceFromItem(item: RssItem, feedSource: string): string {
+  if (feedSource === 'google-news') {
+    if (item.source) {
+      if (typeof item.source === 'string') return item.source;
+      if (item.source['#text']) return item.source['#text'];
+    }
+    return 'google-news';
+  }
+  return feedSource;
+}
+
 export async function fetchAllNews(): Promise<NewsItem[]> {
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -75,11 +98,11 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
   });
 
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(async (url) => {
-      const response = await fetch(url);
+    RSS_FEEDS.map(async (feed) => {
+      const response = await fetch(feed.url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const xml = await response.text();
-      return parser.parse(xml);
+      return { parsed: parser.parse(xml), source: feed.source };
     })
   );
 
@@ -89,14 +112,18 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
   for (const result of results) {
     if (result.status !== 'fulfilled') continue;
 
-    const parsed = result.value;
+    const { parsed, source: feedSource } = result.value;
     const items: RssItem[] = parsed?.rss?.channel?.item ?? parsed?.['rdf:RDF']?.item ?? [];
     const itemList = Array.isArray(items) ? items : [items];
 
     for (const item of itemList) {
-      const title = extractText(item.title);
+      let title = extractText(item.title);
       const link = typeof item.link === 'string' ? item.link : '';
       if (!title || !link) continue;
+
+      if (feedSource === 'google-news') {
+        title = cleanGoogleNewsTitle(title);
+      }
 
       const id = hashString(link);
       if (seenIds.has(id)) continue;
@@ -104,12 +131,13 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
 
       const publishedAt = item.pubDate ?? item['dc:date'] ?? new Date().toISOString();
       const region = classifyRegion(title);
+      const source = extractSourceFromItem(item, feedSource);
 
       allNews.push({
         id,
         title,
         link,
-        source: 'nhk',
+        source,
         publishedAt: new Date(publishedAt).toISOString(),
         prefectureCode: region.prefectureCode,
         prefectureName: region.prefectureName,

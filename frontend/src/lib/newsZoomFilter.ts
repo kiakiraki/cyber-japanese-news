@@ -50,7 +50,7 @@ export function filterVisiblePrefectures(
   const filtered = new Map<string, NewsItem[]>();
 
   for (const [code, items] of newsByPrefecture) {
-    if (code === 'national') continue;
+    if (code === 'national' || code === 'international') continue;
 
     const pref = PREFECTURE_MAP.get(code);
     if (!pref) continue;
