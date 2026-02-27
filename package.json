@@ -1,5 +1,6 @@
 {
   "private": true,
+  "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"pnpm run --filter ./worker dev\" \"pnpm run --filter ./frontend dev\"",
     "build": "pnpm run --filter ./worker build && pnpm run --filter ./frontend build",
