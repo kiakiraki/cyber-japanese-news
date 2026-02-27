@@ -1,17 +1,1 @@
-export interface NewsItem {
-  id: string;
-  title: string;
-  link: string;
-  source: string;
-  publishedAt: string;
-  prefectureCode: string;
-  prefectureName: string;
-  isBreaking: boolean;
-  category: 'disaster' | 'crime' | 'politics' | 'sports' | 'other';
-  ogpImageUrl?: string;
-}
-
-export interface NewsApiResponse {
-  news: NewsItem[];
-  fetchedAt: string;
-}
+export type { NewsItem, NewsApiResponse } from '@cyber-japanese-news/shared';

@@ -1,3 +1,4 @@
+export type { NewsItem, NewsApiResponse } from './news';
 export type {
   PrefectureIntensity,
   EarthquakeItem,
@@ -6,6 +7,4 @@ export type {
   ActiveWarning,
   WarningAreaSummary,
   JmaApiResponse,
-} from '@cyber-japanese-news/shared';
-
-export type SeismicIntensity = 10 | 20 | 30 | 40 | 45 | 50 | 55 | 60 | 70;
+} from './jma';

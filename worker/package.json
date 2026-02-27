@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cyber-japanese-news/shared": "workspace:*",
     "fast-xml-parser": "^5.3.7"
   },
   "devDependencies": {

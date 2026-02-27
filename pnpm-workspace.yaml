@@ -1,6 +1,7 @@
 packages:
   - worker
   - frontend
+  - packages/*
 
 onlyBuiltDependencies:
   - esbuild
