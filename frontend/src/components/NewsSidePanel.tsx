@@ -68,6 +68,18 @@ function NewsCard({ item }: { item: NewsItem }) {
         >
           {CATEGORY_LABELS[item.category]}
         </span>
+        {item.prefectureCode === 'international' && (
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold"
+            style={{
+              color: '#bb88ff',
+              border: '1px solid rgba(187, 136, 255, 0.4)',
+              backgroundColor: 'rgba(187, 136, 255, 0.1)',
+            }}
+          >
+            国際
+          </span>
+        )}
         {item.isBreaking && (
           <span
             className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold animate-pulse"
@@ -108,8 +120,9 @@ export function NewsSidePanel({ selectedPrefecture, news, newsByPrefecture, eart
     ? newsByPrefecture.get(selectedPrefecture) ?? []
     : news;
 
+  const SPECIAL_NAMES: Record<string, string> = { national: '全国', international: '国際' };
   const prefName = selectedPrefecture
-    ? PREFECTURE_MAP.get(selectedPrefecture)?.name ?? '不明'
+    ? SPECIAL_NAMES[selectedPrefecture] ?? PREFECTURE_MAP.get(selectedPrefecture)?.name ?? '不明'
     : '全国';
 
   const displayQuakes = earthquakes.slice(0, 5);

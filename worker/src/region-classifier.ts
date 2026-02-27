@@ -59,6 +59,26 @@ export interface ClassifiedRegion {
   prefectureName: string;
 }
 
+const INTERNATIONAL_KEYWORDS = [
+  // 国名・地域名
+  '米国', 'アメリカ', '米大統領', '米軍', '米政府', '米議会',
+  '中国', '韓国', '北朝鮮', 'ロシア', 'ウクライナ',
+  'イラン', 'イスラエル', 'パレスチナ', 'ガザ', 'シリア', 'イラク',
+  'イギリス', 'フランス', 'ドイツ', 'イタリア', 'スペイン',
+  'インド', 'パキスタン', 'タイ', 'ベトナム', 'フィリピン', 'インドネシア',
+  'オーストラリア', 'カナダ', 'ブラジル', 'メキシコ',
+  'トルコ', 'エジプト', 'サウジアラビア', '南アフリカ',
+  'EU', 'NATO', '国連',
+  // 都市名
+  'ニューヨーク', 'ワシントン', 'ロサンゼルス', 'シリコンバレー',
+  '北京', '上海', 'ソウル', 'モスクワ', 'キーウ',
+  'ロンドン', 'パリ', 'ベルリン', 'ミラノ', 'ローマ',
+  // 人名（国際的に頻出）
+  'トランプ', 'バイデン', 'ゼレンスキー', 'プーチン', '習近平',
+  // 一般キーワード
+  '海外', '国際',
+];
+
 export function classifyRegion(title: string): ClassifiedRegion {
   for (const pref of PREFECTURES) {
     for (const keyword of pref.keywords) {
@@ -68,6 +88,15 @@ export function classifyRegion(title: string): ClassifiedRegion {
           prefectureName: pref.name,
         };
       }
+    }
+  }
+
+  for (const keyword of INTERNATIONAL_KEYWORDS) {
+    if (title.includes(keyword)) {
+      return {
+        prefectureCode: 'international',
+        prefectureName: '国際',
+      };
     }
   }
 

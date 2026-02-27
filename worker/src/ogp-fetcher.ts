@@ -62,7 +62,9 @@ async function fetchOgpImageUrl(link: string): Promise<string | null> {
  * prioritize breaking news and recency.
  */
 function selectFetchCandidates(items: NewsItem[]): NewsItem[] {
-  const candidates = items.filter((item) => item.prefectureCode !== 'national');
+  const candidates = items.filter(
+    (item) => item.prefectureCode !== 'national' && !item.link.startsWith('https://news.google.com/'),
+  );
 
   const seen = new Set<string>();
   const unique: NewsItem[] = [];

@@ -28,12 +28,32 @@ describe('classifyRegion', () => {
   });
 
   it('どの都道府県にもマッチしない場合は全国を返す', () => {
-    const result = classifyRegion('国際情勢の最新ニュース');
+    const result = classifyRegion('新年度予算案が実質的審議入り');
     expect(result).toStrictEqual({ prefectureCode: 'national', prefectureName: '全国' });
   });
 
   it('空文字列は全国を返す', () => {
     const result = classifyRegion('');
     expect(result).toStrictEqual({ prefectureCode: 'national', prefectureName: '全国' });
+  });
+
+  it('国名キーワードで国際ニュースに分類できる', () => {
+    const result = classifyRegion('ウクライナ東部で激しい戦闘');
+    expect(result).toStrictEqual({ prefectureCode: 'international', prefectureName: '国際' });
+  });
+
+  it('都市名キーワードで国際ニュースに分類できる', () => {
+    const result = classifyRegion('ミラノで路面電車が脱線');
+    expect(result).toStrictEqual({ prefectureCode: 'international', prefectureName: '国際' });
+  });
+
+  it('人名キーワードで国際ニュースに分類できる', () => {
+    const result = classifyRegion('トランプ大統領が新たな関税措置を発表');
+    expect(result).toStrictEqual({ prefectureCode: 'international', prefectureName: '国際' });
+  });
+
+  it('都道府県キーワードは国際キーワードより優先される', () => {
+    const result = classifyRegion('沖縄の米軍基地問題で抗議');
+    expect(result).toStrictEqual({ prefectureCode: '47', prefectureName: '沖縄県' });
   });
 });
