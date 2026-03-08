@@ -78,11 +78,9 @@ export function useUpdateDetection(
   });
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Use ref to avoid stale closure — fireEvent reads latest activeEvent via ref
-  const activeEventRef = useRef(activeEvent);
-  useEffect(() => {
-    activeEventRef.current = activeEvent;
-  }, [activeEvent]);
+  // Ref for synchronous priority tracking inside fireEvent
+  // Updated synchronously in fireEvent/clearEvent to avoid same-tick race conditions
+  const activeEventRef = useRef<UpdateEvent | null>(null);
 
   const fireEvent = useCallback((event: UpdateEvent) => {
     const now = Date.now();
@@ -95,7 +93,7 @@ export function useUpdateDetection(
     const elapsed = now - lastFireTimeRef.current[level];
     if (elapsed < COOLDOWN_MS[level]) return;
 
-    // Priority check: don't interrupt higher-level effects
+    // Priority check: don't interrupt higher-level effects (read synchronous ref)
     const current = activeEventRef.current;
     if (current && LEVEL_PRIORITY[current.level] > LEVEL_PRIORITY[level]) return;
 
@@ -104,15 +102,19 @@ export function useUpdateDetection(
     // Clear previous timer
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
 
+    // Update ref synchronously so subsequent microtask calls in the same tick see it
+    activeEventRef.current = effectiveEvent;
     setActiveEvent(effectiveEvent);
 
     clearTimerRef.current = setTimeout(() => {
+      activeEventRef.current = null;
       setActiveEvent(null);
     }, EFFECT_DURATION[level]);
   }, []); // stable reference — no dependencies
 
   const clearEvent = useCallback(() => {
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    activeEventRef.current = null;
     setActiveEvent(null);
   }, []);
 

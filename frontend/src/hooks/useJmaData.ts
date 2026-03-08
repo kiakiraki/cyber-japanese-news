@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { EarthquakeItem, TsunamiItem, WarningAreaSummary, JmaApiResponse } from '../types/jma';
 import { fetchWithRetry } from '../lib/fetchUtils';
 
@@ -43,52 +43,61 @@ export function useJmaData() {
     p2pquake: 'loading',
     jmaWarning: 'loading',
   });
-
-  const fetchData = useCallback(async () => {
-    if (USE_MOCK) {
-      const [{ MOCK_EARTHQUAKES, MOCK_TSUNAMIS }, { MOCK_WARNINGS }] = await Promise.all([
-        import('../lib/mockJma'),
-        import('../lib/mockWarnings'),
-      ]);
-      setEarthquakes(MOCK_EARTHQUAKES);
-      setTsunamis(MOCK_TSUNAMIS);
-      setWarnings(MOCK_WARNINGS);
-      setLastUpdated(new Date());
-      setStatus({ p2pquake: 'fresh', jmaWarning: 'fresh' });
-      return;
-    }
-
-    try {
-      const data = await fetchWithRetry<JmaApiResponse>(`${API_URL}/api/jma`);
-      if (data) {
-        setEarthquakes(data.earthquakes ?? []);
-        setTsunamis(data.tsunamis ?? []);
-        setWarnings(data.warnings ?? []);
-        setLastUpdated(new Date());
-
-        const sources = data.meta?.sources;
-        if (sources) {
-          setStatus({
-            p2pquake: sources.p2pquake === 'ok' ? 'fresh' : 'stale',
-            jmaWarning: sources.jmaWarning === 'ok' ? 'fresh' : 'stale',
-          });
-        } else {
-          setStatus({ p2pquake: 'stale', jmaWarning: 'stale' });
-        }
-      }
-    } catch {
-      setStatus({ p2pquake: 'error', jmaWarning: 'error' });
-    }
-  }, []);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const initial = setTimeout(fetchData, 0);
+    async function fetchData() {
+      if (USE_MOCK) {
+        const [{ MOCK_EARTHQUAKES, MOCK_TSUNAMIS }, { MOCK_WARNINGS }] = await Promise.all([
+          import('../lib/mockJma'),
+          import('../lib/mockWarnings'),
+        ]);
+        setEarthquakes(MOCK_EARTHQUAKES);
+        setTsunamis(MOCK_TSUNAMIS);
+        setWarnings(MOCK_WARNINGS);
+        setLastUpdated(new Date());
+        setStatus({ p2pquake: 'fresh', jmaWarning: 'fresh' });
+        return;
+      }
+
+      // Abort previous in-flight request
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const data = await fetchWithRetry<JmaApiResponse>(`${API_URL}/api/jma`, {
+          signal: controller.signal,
+        });
+        if (data) {
+          setEarthquakes(data.earthquakes ?? []);
+          setTsunamis(data.tsunamis ?? []);
+          setWarnings(data.warnings ?? []);
+          setLastUpdated(new Date());
+
+          const sources = data.meta?.sources;
+          if (sources) {
+            setStatus({
+              p2pquake: sources.p2pquake === 'ok' ? 'fresh' : 'stale',
+              jmaWarning: sources.jmaWarning === 'ok' ? 'fresh' : 'stale',
+            });
+          } else {
+            setStatus({ p2pquake: 'stale', jmaWarning: 'stale' });
+          }
+        }
+      } catch {
+        if (controller.signal.aborted) return;
+        setStatus({ p2pquake: 'error', jmaWarning: 'error' });
+      }
+    }
+
+    fetchData();
     const interval = setInterval(fetchData, POLL_INTERVAL);
     return () => {
-      clearTimeout(initial);
       clearInterval(interval);
+      abortRef.current?.abort();
     };
-  }, [fetchData]);
+  }, []);
 
   const displayQuakes = useMemo(() => filterRecentQuakes(earthquakes), [earthquakes]);
   const recentQuake = useMemo(() => findRecentQuake(earthquakes), [earthquakes]);

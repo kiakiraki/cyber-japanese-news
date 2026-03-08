@@ -128,7 +128,8 @@ export async function enrichWithOgp(items: NewsItem[]): Promise<NewsItem[]> {
     await mapWithConcurrency(toFetch, 3, async (item) => {
       const url = await fetchOgpImageUrl(item.link);
       ogpMap.set(item.link, url);
-      await setCachedOgp(item.link, url);
+      // Fire-and-forget: cache write is non-critical and shouldn't block the response
+      void setCachedOgp(item.link, url);
     });
   }
 

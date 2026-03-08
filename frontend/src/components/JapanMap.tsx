@@ -218,7 +218,7 @@ export function JapanMap({
           el.attr('fill', hasNews ? 'rgba(0, 255, 255, 0.06)' : 'rgba(0, 255, 255, 0.02)');
         }
       });
-  }, [selectedPrefecture, newsByPrefecture]);
+  }, [selectedPrefecture, newsByPrefecture, geojsonFeatures]);
 
   // Effect 3: News markers — rebuild only markers group when news changes
   useEffect(() => {
@@ -320,7 +320,7 @@ export function JapanMap({
           .text(items.length);
       }
     }
-  }, [newsByPrefecture, projection]);
+  }, [newsByPrefecture, projection, geojsonFeatures]);
 
   // Inverse-scale correction for D3-managed elements when zoom changes
   useEffect(() => {
