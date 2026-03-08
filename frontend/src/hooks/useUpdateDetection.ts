@@ -62,6 +62,7 @@ export function useUpdateDetection(
   earthquakes: EarthquakeItem[],
   tsunamis: TsunamiItem[],
   warnings: WarningAreaSummary[],
+  isReady: boolean,
 ) {
   const [activeEvent, setActiveEvent] = useState<UpdateEvent | null>(null);
 
@@ -70,13 +71,13 @@ export function useUpdateDetection(
   const prevTsunamiIdsRef = useRef<Set<string>>(new Set());
   const prevWarningKeysRef = useRef<Set<string>>(new Set());
 
-  const isInitialLoadRef = useRef(true);
   const lastFireTimeRef = useRef<Record<EffectLevel, number>>({
     incoming: 0,
     alert: 0,
     critical: 0,
   });
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const hasInitializedRef = useRef(false);
 
   // Ref for synchronous priority tracking inside fireEvent
   // Updated synchronously in fireEvent/clearEvent to avoid same-tick race conditions
@@ -118,14 +119,32 @@ export function useUpdateDetection(
     setActiveEvent(null);
   }, []);
 
-  // Detect news changes
   useEffect(() => {
-    const currentIds = new Set(news.map((n) => n.id));
-
-    if (isInitialLoadRef.current && news.length > 0) {
-      prevNewsIdsRef.current = currentIds;
+    if (!isReady) {
+      hasInitializedRef.current = false;
+      prevNewsIdsRef.current = new Set();
+      prevEarthquakeIdsRef.current = new Set();
+      prevTsunamiIdsRef.current = new Set();
+      prevWarningKeysRef.current = new Set();
       return;
     }
+
+    if (hasInitializedRef.current) return;
+
+    prevNewsIdsRef.current = new Set(news.map((n) => n.id));
+    prevEarthquakeIdsRef.current = new Set(earthquakes.map((eq) => eq.id));
+    prevTsunamiIdsRef.current = new Set(tsunamis.map((t) => t.id));
+    prevWarningKeysRef.current = new Set(
+      warnings.flatMap((w) => w.activeWarnings.map((aw) => `${w.areaCode}-${aw.code}`))
+    );
+    hasInitializedRef.current = true;
+  }, [news, earthquakes, tsunamis, warnings, isReady]);
+
+  // Detect news changes
+  useEffect(() => {
+    if (!isReady || !hasInitializedRef.current) return;
+
+    const currentIds = new Set(news.map((n) => n.id));
 
     const newIds = [...currentIds].filter((id) => !prevNewsIdsRef.current.has(id));
     if (newIds.length > 0) {
@@ -145,16 +164,13 @@ export function useUpdateDetection(
     }
 
     prevNewsIdsRef.current = currentIds;
-  }, [news, fireEvent]);
+  }, [news, fireEvent, isReady]);
 
   // Detect earthquake changes
   useEffect(() => {
-    const currentIds = new Set(earthquakes.map((eq) => eq.id));
+    if (!isReady || !hasInitializedRef.current) return;
 
-    if (isInitialLoadRef.current && earthquakes.length > 0) {
-      prevEarthquakeIdsRef.current = currentIds;
-      return;
-    }
+    const currentIds = new Set(earthquakes.map((eq) => eq.id));
 
     const newIds = [...currentIds].filter((id) => !prevEarthquakeIdsRef.current.has(id));
     if (newIds.length > 0) {
@@ -176,16 +192,13 @@ export function useUpdateDetection(
     }
 
     prevEarthquakeIdsRef.current = currentIds;
-  }, [earthquakes, fireEvent]);
+  }, [earthquakes, fireEvent, isReady]);
 
   // Detect tsunami changes
   useEffect(() => {
-    const currentIds = new Set(tsunamis.map((t) => t.id));
+    if (!isReady || !hasInitializedRef.current) return;
 
-    if (isInitialLoadRef.current && tsunamis.length > 0) {
-      prevTsunamiIdsRef.current = currentIds;
-      return;
-    }
+    const currentIds = new Set(tsunamis.map((t) => t.id));
 
     const newIds = [...currentIds].filter((id) => !prevTsunamiIdsRef.current.has(id));
     if (newIds.length > 0) {
@@ -205,20 +218,17 @@ export function useUpdateDetection(
     }
 
     prevTsunamiIdsRef.current = currentIds;
-  }, [tsunamis, fireEvent]);
+  }, [tsunamis, fireEvent, isReady]);
 
   // Detect warning changes
   useEffect(() => {
+    if (!isReady || !hasInitializedRef.current) return;
+
     const currentKeys = new Set(
       warnings.flatMap((w) =>
         w.activeWarnings.map((aw) => `${w.areaCode}-${aw.code}`)
       )
     );
-
-    if (isInitialLoadRef.current && warnings.length > 0) {
-      prevWarningKeysRef.current = currentKeys;
-      return;
-    }
 
     const newKeys = [...currentKeys].filter((k) => !prevWarningKeysRef.current.has(k));
     if (newKeys.length > 0) {
@@ -244,18 +254,7 @@ export function useUpdateDetection(
     }
 
     prevWarningKeysRef.current = currentKeys;
-  }, [warnings, fireEvent]);
-
-  // Mark initial load as complete after first data arrives
-  useEffect(() => {
-    if (isInitialLoadRef.current && (news.length > 0 || earthquakes.length > 0)) {
-      // Use timeout to ensure all detection effects have run
-      const timer = setTimeout(() => {
-        isInitialLoadRef.current = false;
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [news, earthquakes]);
+  }, [warnings, fireEvent, isReady]);
 
   // Cleanup on unmount
   useEffect(() => {

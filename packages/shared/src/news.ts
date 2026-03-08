@@ -14,4 +14,5 @@ export interface NewsItem {
 export interface NewsApiResponse {
   news: NewsItem[];
   fetchedAt: string;
+  feedCount: number;
 }

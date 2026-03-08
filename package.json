@@ -2,8 +2,8 @@
   "private": true,
   "packageManager": "pnpm@10.29.3",
   "scripts": {
-    "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"pnpm run --filter ./worker dev\" \"pnpm run --filter ./frontend dev\"",
-    "build": "pnpm run --filter ./worker build && pnpm run --filter ./frontend build",
+    "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"pnpm --filter ./worker run dev\" \"pnpm --filter ./frontend run dev\"",
+    "build": "pnpm --filter ./worker run build && pnpm --filter ./frontend run build",
     "test": "vitest",
     "test:run": "vitest run"
   },

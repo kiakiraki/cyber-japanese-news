@@ -5,8 +5,10 @@ import type { UpdateEvent } from '../types/effects';
 
 interface StatsBarProps {
   totalCount: number;
-  lastUpdated: Date | null;
-  isLoading: boolean;
+  feedCount: number;
+  newsLastUpdated: Date | null;
+  jmaLastUpdated: Date | null;
+  isNewsLoading: boolean;
   jmaStatus?: JmaSourceStatus;
   flashEvent?: UpdateEvent | null;
 }
@@ -30,8 +32,10 @@ const JMA_STATUS_COLORS: Record<JmaStatus, string> = {
 
 export function StatsBar({
   totalCount,
-  lastUpdated,
-  isLoading,
+  feedCount,
+  newsLastUpdated,
+  jmaLastUpdated,
+  isNewsLoading,
   jmaStatus = { p2pquake: 'loading', jmaWarning: 'loading' },
   flashEvent = null,
 }: StatsBarProps) {
@@ -76,13 +80,13 @@ export function StatsBar({
           <div
             className="w-2 h-2 rounded-full"
             style={{
-              backgroundColor: isLoading ? '#ff8800' : '#00ff88',
-              boxShadow: `0 0 6px ${isLoading ? '#ff8800' : '#00ff88'}`,
-              animation: isLoading ? 'pulse 1s infinite' : 'none',
+              backgroundColor: isNewsLoading ? '#ff8800' : '#00ff88',
+              boxShadow: `0 0 6px ${isNewsLoading ? '#ff8800' : '#00ff88'}`,
+              animation: isNewsLoading ? 'pulse 1s infinite' : 'none',
             }}
           />
           <span className="text-cyber-text-dim">FEEDS</span>
-          <span className="text-cyber-text">3</span>
+          <span className="text-cyber-text">{feedCount}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -125,9 +129,16 @@ export function StatsBar({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-cyber-text-dim">SYNC</span>
+          <span className="text-cyber-text-dim">NEWS_SYNC</span>
           <span className="text-cyber-text">
-            {lastUpdated ? formatJST(lastUpdated) : '--:--:--'}
+            {newsLastUpdated ? formatJST(newsLastUpdated) : '--:--:--'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-cyber-text-dim">JMA_SYNC</span>
+          <span className="text-cyber-text">
+            {jmaLastUpdated ? formatJST(jmaLastUpdated) : '--:--:--'}
           </span>
         </div>
 

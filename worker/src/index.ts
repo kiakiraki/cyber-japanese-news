@@ -1,4 +1,4 @@
-import { fetchAllNews } from './rss-fetcher';
+import { fetchAllNews, RSS_FEED_COUNT } from './rss-fetcher';
 import { fetchJmaData } from './jma-fetcher';
 import type { NewsApiResponse, JmaApiResponse } from './types';
 
@@ -28,6 +28,7 @@ export default {
         const body: NewsApiResponse = {
           news,
           fetchedAt: new Date().toISOString(),
+          feedCount: RSS_FEED_COUNT,
         };
 
         return new Response(JSON.stringify(body), {
