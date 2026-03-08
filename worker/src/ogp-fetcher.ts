@@ -1,12 +1,7 @@
 import type { NewsItem } from './types';
 
-interface CacheEntry {
-  url: string | null;
-  expires: number;
-}
-
-const ogpCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const OGP_CACHE_PREFIX = 'https://ogp-cache.internal/';
+const CACHE_TTL = 3600; // 1 hour (seconds)
 const FETCH_TIMEOUT = 10_000; // 10s
 const MAX_FETCH_CANDIDATES = 15;
 
@@ -33,18 +28,41 @@ async function mapWithConcurrency<T, R>(
 const OG_IMAGE_RE = /<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i;
 const OG_IMAGE_RE_ALT = /<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i;
 
-function timeoutPromise(ms: number): Promise<never> {
-  return new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('timeout')), ms),
-  );
+async function getCachedOgp(link: string): Promise<string | null | undefined> {
+  try {
+    const cache = caches.default;
+    const key = new Request(`${OGP_CACHE_PREFIX}${encodeURIComponent(link)}`);
+    const response = await cache.match(key);
+    if (!response) return undefined; // not cached
+    const data = await response.json<{ url: string | null }>();
+    return data.url;
+  } catch {
+    return undefined;
+  }
+}
+
+async function setCachedOgp(link: string, url: string | null): Promise<void> {
+  try {
+    const cache = caches.default;
+    const key = new Request(`${OGP_CACHE_PREFIX}${encodeURIComponent(link)}`);
+    const response = new Response(JSON.stringify({ url }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': `public, max-age=${CACHE_TTL}`,
+      },
+    });
+    await cache.put(key, response);
+  } catch {
+    // Cache write failure is non-critical
+  }
 }
 
 async function fetchOgpImageUrl(link: string): Promise<string | null> {
   try {
-    const response = await Promise.race([
-      fetch(link, { redirect: 'follow' }),
-      timeoutPromise(FETCH_TIMEOUT),
-    ]);
+    const response = await fetch(link, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
 
     if (!response.ok) return null;
 
@@ -84,35 +102,42 @@ function selectFetchCandidates(items: NewsItem[]): NewsItem[] {
 }
 
 export async function enrichWithOgp(items: NewsItem[]): Promise<NewsItem[]> {
-  const now = Date.now();
-
-  // Purge expired entries
-  for (const [key, entry] of ogpCache) {
-    if (entry.expires < now) {
-      ogpCache.delete(key);
-    }
-  }
-
   // Only fetch OGP for top display candidates (not all 100+ items)
   const candidates = selectFetchCandidates(items);
-  const toFetch = candidates.filter((item) => {
-    const cached = ogpCache.get(item.link);
-    return !cached || cached.expires < now;
+
+  // Check cache and find items that need fetching
+  const cacheResults = await mapWithConcurrency(candidates, 5, async (item) => {
+    const cached = await getCachedOgp(item.link);
+    return { item, cached };
   });
+
+  const toFetch = cacheResults
+    .filter((r) => r.cached === undefined)
+    .map((r) => r.item);
+
+  // Build a link -> url map from cache hits
+  const ogpMap = new Map<string, string | null>();
+  for (const r of cacheResults) {
+    if (r.cached !== undefined) {
+      ogpMap.set(r.item.link, r.cached);
+    }
+  }
 
   // Fetch OGP for uncached items (max 3 concurrent)
   if (toFetch.length > 0) {
     await mapWithConcurrency(toFetch, 3, async (item) => {
       const url = await fetchOgpImageUrl(item.link);
-      ogpCache.set(item.link, { url, expires: now + CACHE_TTL });
+      ogpMap.set(item.link, url);
+      // Fire-and-forget: cache write is non-critical and shouldn't block the response
+      void setCachedOgp(item.link, url);
     });
   }
 
-  // Enrich items with cached OGP URLs
+  // Enrich items with OGP URLs
   return items.map((item) => {
-    const cached = ogpCache.get(item.link);
-    if (cached?.url) {
-      return { ...item, ogpImageUrl: cached.url };
+    const url = ogpMap.get(item.link);
+    if (url) {
+      return { ...item, ogpImageUrl: url };
     }
     return item;
   });

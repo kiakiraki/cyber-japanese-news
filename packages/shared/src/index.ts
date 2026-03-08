@@ -8,3 +8,11 @@ export type {
   WarningAreaSummary,
   JmaApiResponse,
 } from './jma';
+
+export { BREAKING_KEYWORDS, CATEGORY_KEYWORDS } from './keywords';
+export {
+  type WarningDefinition,
+  getWarningDef,
+  severityRank,
+  SEVERITY_COLORS,
+} from './warning-codes';

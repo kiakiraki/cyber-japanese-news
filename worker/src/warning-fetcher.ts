@@ -3,6 +3,7 @@ import { getWarningDef } from './warning-codes';
 import { resolveAreaCode } from './area-code-map';
 
 const MAP_JSON_URL = 'https://www.jma.go.jp/bosai/warning/data/warning/map.json';
+const FETCH_TIMEOUT = 8_000; // 8s
 
 interface RawWarning {
   code: string;
@@ -47,7 +48,9 @@ export async function fetchWarnings(): Promise<{
   status: 'ok' | 'error';
 }> {
   try {
-    const res = await fetch(MAP_JSON_URL);
+    const res = await fetch(MAP_JSON_URL, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
     if (!res.ok) {
       return { warnings: [], status: 'error' };
     }
