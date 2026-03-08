@@ -78,6 +78,12 @@ export function useUpdateDetection(
   });
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  // Use ref to avoid stale closure — fireEvent reads latest activeEvent via ref
+  const activeEventRef = useRef(activeEvent);
+  useEffect(() => {
+    activeEventRef.current = activeEvent;
+  }, [activeEvent]);
+
   const fireEvent = useCallback((event: UpdateEvent) => {
     const now = Date.now();
     const level = downgradeLevel(event.level);
@@ -90,7 +96,8 @@ export function useUpdateDetection(
     if (elapsed < COOLDOWN_MS[level]) return;
 
     // Priority check: don't interrupt higher-level effects
-    if (activeEvent && LEVEL_PRIORITY[activeEvent.level] > LEVEL_PRIORITY[level]) return;
+    const current = activeEventRef.current;
+    if (current && LEVEL_PRIORITY[current.level] > LEVEL_PRIORITY[level]) return;
 
     lastFireTimeRef.current[level] = now;
 
@@ -102,7 +109,7 @@ export function useUpdateDetection(
     clearTimerRef.current = setTimeout(() => {
       setActiveEvent(null);
     }, EFFECT_DURATION[level]);
-  }, [activeEvent]);
+  }, []); // stable reference — no dependencies
 
   const clearEvent = useCallback(() => {
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);

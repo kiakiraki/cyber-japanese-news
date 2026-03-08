@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { BREAKING_KEYWORDS, CATEGORY_KEYWORDS } from '@cyber-japanese-news/shared';
 import { classifyRegion } from './region-classifier';
 import { enrichWithOgp } from './ogp-fetcher';
 import type { NewsItem } from './types';
@@ -17,18 +18,6 @@ const RSS_FEEDS: FeedConfig[] = [
   { url: 'https://www.jiji.com/rss/ranking.rdf', source: 'jiji' },
   { url: 'https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja', source: 'google-news' },
 ];
-
-const BREAKING_KEYWORDS = [
-  '速報', '緊急', '地震', '津波', '警報', '避難',
-  '逮捕', 'テロ', 'ミサイル', '噴火',
-];
-
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  disaster: ['地震', '津波', '台風', '豪雨', '噴火', '洪水', '土砂崩れ', '暴風', '大雪', '警報', '避難'],
-  crime: ['逮捕', '容疑', '事件', '殺人', '詐欺', '強盗', '窃盗', '暴行', '裁判', '判決', '起訴'],
-  politics: ['政府', '国会', '首相', '大臣', '選挙', '法案', '外交', '条約', '内閣', '知事'],
-  sports: ['五輪', 'オリンピック', '大谷', '野球', 'サッカー', '試合', '優勝', '選手権', 'W杯'],
-};
 
 function hashString(str: string): string {
   let hash = 0;
@@ -91,15 +80,19 @@ export function extractSourceFromItem(item: RssItem, feedSource: string): string
   return feedSource;
 }
 
-export async function fetchAllNews(): Promise<NewsItem[]> {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    cdataPropName: '__cdata',
-  });
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  cdataPropName: '__cdata',
+});
 
+const RSS_FETCH_TIMEOUT = 8_000; // 8s
+
+export async function fetchAllNews(): Promise<NewsItem[]> {
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
-      const response = await fetch(feed.url);
+      const response = await fetch(feed.url, {
+        signal: AbortSignal.timeout(RSS_FETCH_TIMEOUT),
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const xml = await response.text();
       return { parsed: parser.parse(xml), source: feed.source };

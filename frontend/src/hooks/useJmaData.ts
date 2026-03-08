@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { EarthquakeItem, TsunamiItem, WarningAreaSummary } from '../types/jma';
-import { MOCK_EARTHQUAKES, MOCK_TSUNAMIS } from '../lib/mockJma';
-import { MOCK_WARNINGS } from '../lib/mockWarnings';
+import type { EarthquakeItem, TsunamiItem, WarningAreaSummary, JmaApiResponse } from '../types/jma';
+import { fetchWithRetry } from '../lib/fetchUtils';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const POLL_INTERVAL = 30_000;
-const MAX_RETRIES = 3;
 const THREE_HOURS = 3 * 60 * 60 * 1000;
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
@@ -15,20 +13,6 @@ export type JmaStatus = 'fresh' | 'stale' | 'error' | 'loading';
 export interface JmaSourceStatus {
   p2pquake: JmaStatus;
   jmaWarning: JmaStatus;
-}
-
-async function fetchWithRetry(url: string, retries = MAX_RETRIES) {
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (error) {
-      if (attempt === retries - 1) throw error;
-      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-    }
-  }
-  return null;
 }
 
 function filterRecentQuakes(earthquakes: EarthquakeItem[]): EarthquakeItem[] {
@@ -62,6 +46,10 @@ export function useJmaData() {
 
   const fetchData = useCallback(async () => {
     if (USE_MOCK) {
+      const [{ MOCK_EARTHQUAKES, MOCK_TSUNAMIS }, { MOCK_WARNINGS }] = await Promise.all([
+        import('../lib/mockJma'),
+        import('../lib/mockWarnings'),
+      ]);
       setEarthquakes(MOCK_EARTHQUAKES);
       setTsunamis(MOCK_TSUNAMIS);
       setWarnings(MOCK_WARNINGS);
@@ -71,7 +59,7 @@ export function useJmaData() {
     }
 
     try {
-      const data = await fetchWithRetry(`${API_URL}/api/jma`);
+      const data = await fetchWithRetry<JmaApiResponse>(`${API_URL}/api/jma`);
       if (data) {
         setEarthquakes(data.earthquakes ?? []);
         setTsunamis(data.tsunamis ?? []);

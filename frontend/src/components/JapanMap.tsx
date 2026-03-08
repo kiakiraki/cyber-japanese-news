@@ -80,11 +80,9 @@ export function JapanMap({
   const handleClick = useCallback(
     (code: string) => {
       if (selectedPrefecture === code) {
-        // Deselect + reset zoom
         onSelectPrefecture(null);
         resetZoom();
       } else {
-        // Select + zoom to prefecture
         onSelectPrefecture(code);
         const pref = PREFECTURE_MAP.get(code);
         if (pref) {
@@ -114,21 +112,34 @@ export function JapanMap({
     [selectedPrefecture, onSelectPrefecture, resetZoom]
   );
 
-  // D3 rendering: base map + news markers
+  // Refs to avoid re-creating base map when handlers/data change
+  const handleClickRef = useRef(handleClick);
+  const selectedPrefectureRef = useRef(selectedPrefecture);
+  const newsByPrefectureRef = useRef(newsByPrefecture);
+  useEffect(() => { handleClickRef.current = handleClick; }, [handleClick]);
+  useEffect(() => { selectedPrefectureRef.current = selectedPrefecture; }, [selectedPrefecture]);
+  useEffect(() => { newsByPrefectureRef.current = newsByPrefecture; }, [newsByPrefecture]);
+
+  // Compute GeoJSON once from topology
+  const geojsonFeatures = useMemo(() => {
+    if (!topology) return null;
+    return topojson.feature(
+      topology,
+      topology.objects.japan as GeometryCollection<PrefectureProperties>
+    );
+  }, [topology]);
+
+  // Effect 1: Base map structure — runs once when topology loads
+  // Draws prefecture paths, sets up defs, creates empty markers group
   useEffect(() => {
-    if (!topology || !mapGroupRef.current) return;
+    if (!geojsonFeatures || !mapGroupRef.current) return;
 
     const g = d3.select(mapGroupRef.current);
     g.selectAll('*').remove();
 
-    const geojson = topojson.feature(
-      topology,
-      topology.objects.japan as GeometryCollection<PrefectureProperties>
-    );
-
-    // Build prefecture name -> path 'd' mapping for SeismicOverlay
+    // Build prefecture name -> path 'd' mapping for overlays
     const pathMap = new Map<string, string>();
-    for (const feature of geojson.features) {
+    for (const feature of geojsonFeatures.features) {
       const d = pathGenerator(feature as never);
       if (d && feature.properties.nam_ja) {
         pathMap.set(feature.properties.nam_ja, d);
@@ -137,49 +148,45 @@ export function JapanMap({
     setPrefecturePaths(pathMap);
 
     // Prefecture paths
-    g.selectAll<SVGPathElement, (typeof geojson.features)[number]>('path')
-      .data(geojson.features)
+    g.append('g').attr('class', 'prefectures')
+      .selectAll<SVGPathElement, (typeof geojsonFeatures.features)[number]>('path')
+      .data(geojsonFeatures.features)
       .join('path')
       .attr('d', pathGenerator as never)
-      .attr('fill', (d) => {
-        const code = String(d.properties.id).padStart(2, '0');
-        if (code === selectedPrefecture) return 'rgba(0, 255, 255, 0.25)';
-        const hasNews = newsByPrefecture.has(code);
-        return hasNews ? 'rgba(0, 255, 255, 0.06)' : 'rgba(0, 255, 255, 0.02)';
-      })
+      .attr('fill', 'rgba(0, 255, 255, 0.02)')
       .attr('stroke', '#00ffff')
       .attr('stroke-width', 0.5)
       .attr('data-base-stroke-width', 0.5)
+      .attr('data-code', (d) => String(d.properties.id).padStart(2, '0'))
       .attr('cursor', 'pointer')
       .style('transition', 'fill 0.3s ease')
-      .on('mouseenter', function (_, d) {
-        const code = String(d.properties.id).padStart(2, '0');
-        if (code !== selectedPrefecture) {
+      .on('mouseenter', function () {
+        const code = d3.select(this).attr('data-code');
+        if (code !== selectedPrefectureRef.current) {
           d3.select(this).attr('fill', 'rgba(0, 255, 255, 0.15)');
         }
       })
-      .on('mouseleave', function (_, d) {
-        const code = String(d.properties.id).padStart(2, '0');
-        if (code === selectedPrefecture) {
+      .on('mouseleave', function () {
+        const code = d3.select(this).attr('data-code');
+        if (code === selectedPrefectureRef.current) {
           d3.select(this).attr('fill', 'rgba(0, 255, 255, 0.25)');
         } else {
-          const hasNews = newsByPrefecture.has(code);
+          const hasNews = newsByPrefectureRef.current.has(code);
           d3.select(this).attr('fill', hasNews ? 'rgba(0, 255, 255, 0.06)' : 'rgba(0, 255, 255, 0.02)');
         }
       })
       .on('click', (event: MouseEvent, d) => {
         event.stopPropagation();
-        // Check if this was a drag rather than a click
         if (mouseDownPos.current) {
           const dx = event.clientX - mouseDownPos.current.x;
           const dy = event.clientY - mouseDownPos.current.y;
           if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
         }
         const code = String(d.properties.id).padStart(2, '0');
-        handleClick(code);
+        handleClickRef.current(code);
       });
 
-    // News markers (defs)
+    // Gradient defs for markers
     const defs = g.append('defs');
 
     const pulseNormal = defs.append('radialGradient').attr('id', 'pulse-normal');
@@ -190,7 +197,36 @@ export function JapanMap({
     pulseBreaking.append('stop').attr('offset', '0%').attr('stop-color', '#ff3030').attr('stop-opacity', 0.9);
     pulseBreaking.append('stop').attr('offset', '100%').attr('stop-color', '#ff8800').attr('stop-opacity', 0);
 
-    const markersGroup = g.append('g').attr('class', 'markers');
+    // Empty markers group (populated by Effect 3)
+    g.append('g').attr('class', 'markers');
+  }, [geojsonFeatures, pathGenerator]);
+
+  // Effect 2: Update prefecture fills — lightweight attr update
+  useEffect(() => {
+    if (!mapGroupRef.current) return;
+    const g = d3.select(mapGroupRef.current);
+
+    g.select('.prefectures')
+      .selectAll<SVGPathElement, unknown>('path')
+      .each(function () {
+        const el = d3.select(this);
+        const code = el.attr('data-code');
+        if (code === selectedPrefecture) {
+          el.attr('fill', 'rgba(0, 255, 255, 0.25)');
+        } else {
+          const hasNews = newsByPrefecture.has(code);
+          el.attr('fill', hasNews ? 'rgba(0, 255, 255, 0.06)' : 'rgba(0, 255, 255, 0.02)');
+        }
+      });
+  }, [selectedPrefecture, newsByPrefecture]);
+
+  // Effect 3: News markers — rebuild only markers group when news changes
+  useEffect(() => {
+    if (!mapGroupRef.current) return;
+    const g = d3.select(mapGroupRef.current);
+    const markersGroup = g.select<SVGGElement>('.markers');
+    if (markersGroup.empty()) return;
+    markersGroup.selectAll('*').remove();
 
     for (const [code, items] of newsByPrefecture) {
       if (code === 'national' || code === 'international') continue;
@@ -204,7 +240,7 @@ export function JapanMap({
       // Ripple effect for breaking
       if (hasBreaking) {
         for (let i = 0; i < 3; i++) {
-          markersGroup
+          const ripple = markersGroup
             .append('circle')
             .attr('cx', x)
             .attr('cy', y)
@@ -213,15 +249,17 @@ export function JapanMap({
             .attr('stroke', '#ff3030')
             .attr('stroke-width', 1)
             .attr('data-base-stroke-width', 1)
-            .attr('opacity', 0)
+            .attr('opacity', 0);
+
+          ripple
             .append('animate')
             .attr('attributeName', 'r')
             .attr('values', `${baseSize};${baseSize + 20}`)
             .attr('dur', '2s')
             .attr('begin', `${i * 0.6}s`)
-            .attr('repeatCount', 'indefinite')
-          markersGroup
-            .selectAll('circle:last-child')
+            .attr('repeatCount', 'indefinite');
+
+          ripple
             .append('animate')
             .attr('attributeName', 'opacity')
             .attr('values', '0.6;0')
@@ -262,7 +300,7 @@ export function JapanMap({
             const dy = event.clientY - mouseDownPos.current.y;
             if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
           }
-          handleClick(code);
+          handleClickRef.current(code);
         });
 
       // Count label
@@ -282,7 +320,7 @@ export function JapanMap({
           .text(items.length);
       }
     }
-  }, [topology, newsByPrefecture, selectedPrefecture, handleClick, projection, pathGenerator]);
+  }, [newsByPrefecture, projection]);
 
   // Inverse-scale correction for D3-managed elements when zoom changes
   useEffect(() => {

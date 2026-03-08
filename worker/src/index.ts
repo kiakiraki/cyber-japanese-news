@@ -38,6 +38,7 @@ export default {
           },
         });
       } catch (error) {
+        console.error('[/api/news] Failed to fetch news:', error);
         return new Response(
           JSON.stringify({ error: 'Failed to fetch news' }),
           {
@@ -73,6 +74,7 @@ export default {
           },
         });
       } catch (error) {
+        console.error('[/api/jma] Failed to fetch JMA data:', error);
         const body: JmaApiResponse = {
           earthquakes: [],
           tsunamis: [],

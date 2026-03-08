@@ -8,6 +8,7 @@ import { fetchWarnings } from './warning-fetcher';
 
 const P2P_BASE = 'https://api.p2pquake.net/v2/history';
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+const API_FETCH_TIMEOUT = 8_000; // 8s
 
 // --- P2P API raw types ---
 
@@ -68,7 +69,9 @@ function aggregatePrefIntensities(points: P2PPoint[]): PrefectureIntensity[] {
 // --- Fetchers ---
 
 async function fetchEarthquakes(): Promise<EarthquakeItem[]> {
-  const res = await fetch(`${P2P_BASE}?codes=551&limit=15`);
+  const res = await fetch(`${P2P_BASE}?codes=551&limit=15`, {
+    signal: AbortSignal.timeout(API_FETCH_TIMEOUT),
+  });
   if (!res.ok) throw new Error(`P2P earthquake API: ${res.status}`);
   const raw: P2PEarthquakeEntry[] = await res.json();
 
@@ -94,7 +97,9 @@ async function fetchEarthquakes(): Promise<EarthquakeItem[]> {
 }
 
 async function fetchTsunamis(): Promise<TsunamiItem[]> {
-  const res = await fetch(`${P2P_BASE}?codes=552&limit=5`);
+  const res = await fetch(`${P2P_BASE}?codes=552&limit=5`, {
+    signal: AbortSignal.timeout(API_FETCH_TIMEOUT),
+  });
   if (!res.ok) throw new Error(`P2P tsunami API: ${res.status}`);
   const raw: P2PTsunamiEntry[] = await res.json();
 
