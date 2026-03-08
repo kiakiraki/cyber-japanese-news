@@ -86,6 +86,7 @@ const parser = new XMLParser({
 });
 
 const RSS_FETCH_TIMEOUT = 8_000; // 8s
+export const RSS_FEED_COUNT = RSS_FEEDS.length;
 
 export async function fetchAllNews(): Promise<NewsItem[]> {
   const results = await Promise.allSettled(

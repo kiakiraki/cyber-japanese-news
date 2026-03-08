@@ -39,6 +39,7 @@ export function useJmaData() {
   const [tsunamis, setTsunamis] = useState<TsunamiItem[]>([]);
   const [warnings, setWarnings] = useState<WarningAreaSummary[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [status, setStatus] = useState<JmaSourceStatus>({
     p2pquake: 'loading',
     jmaWarning: 'loading',
@@ -57,6 +58,7 @@ export function useJmaData() {
         setWarnings(MOCK_WARNINGS);
         setLastUpdated(new Date());
         setStatus({ p2pquake: 'fresh', jmaWarning: 'fresh' });
+        setHasLoaded(true);
         return;
       }
 
@@ -73,7 +75,7 @@ export function useJmaData() {
           setEarthquakes(data.earthquakes ?? []);
           setTsunamis(data.tsunamis ?? []);
           setWarnings(data.warnings ?? []);
-          setLastUpdated(new Date());
+          setLastUpdated(new Date(data.meta?.lastUpdated ?? Date.now()));
 
           const sources = data.meta?.sources;
           if (sources) {
@@ -88,6 +90,8 @@ export function useJmaData() {
       } catch {
         if (controller.signal.aborted) return;
         setStatus({ p2pquake: 'error', jmaWarning: 'error' });
+      } finally {
+        setHasLoaded(true);
       }
     }
 
@@ -128,5 +132,6 @@ export function useJmaData() {
     hasSpecialWarning,
     status,
     lastUpdated,
+    hasLoaded,
   };
 }

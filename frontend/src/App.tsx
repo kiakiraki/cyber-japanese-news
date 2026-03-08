@@ -15,7 +15,15 @@ import { EffectLayer } from './components/effects/EffectLayer';
 import type { EffectLevel, UpdateEvent } from './types/effects';
 
 function App() {
-  const { news, newsByPrefecture, totalCount, lastUpdated, isLoading } = useNewsData();
+  const {
+    news,
+    newsByPrefecture,
+    totalCount,
+    feedCount,
+    lastUpdated: newsLastUpdated,
+    isLoading,
+    hasLoaded: hasNewsLoaded,
+  } = useNewsData();
   const jmaData = useJmaData();
   const { currentBreaking, breakingQueue, dismissCurrent } = useBreakingDetection(
     news,
@@ -28,6 +36,7 @@ function App() {
     jmaData.earthquakes,
     jmaData.tsunamis,
     jmaData.warnings,
+    hasNewsLoaded && jmaData.hasLoaded,
   );
   const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -100,8 +109,10 @@ function App() {
 
       <StatsBar
         totalCount={totalCount}
-        lastUpdated={lastUpdated}
-        isLoading={isLoading}
+        feedCount={feedCount}
+        newsLastUpdated={newsLastUpdated}
+        jmaLastUpdated={jmaData.lastUpdated}
+        isNewsLoading={isLoading}
         jmaStatus={jmaData.status}
         flashEvent={activeEvent}
       />

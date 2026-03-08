@@ -5,11 +5,14 @@ import { fetchWithRetry } from '../lib/fetchUtils';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const POLL_INTERVAL = 60_000;
+const MOCK_FEED_COUNT = 7;
 
 export function useNewsData() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [feedCount, setFeedCount] = useState(MOCK_FEED_COUNT);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -19,7 +22,9 @@ export function useNewsData() {
         const { MOCK_NEWS } = await import('../lib/mockNews');
         setNews(MOCK_NEWS);
         setLastUpdated(new Date());
+        setFeedCount(MOCK_FEED_COUNT);
         setIsLoading(false);
+        setHasLoaded(true);
         return;
       }
 
@@ -34,12 +39,14 @@ export function useNewsData() {
           signal: controller.signal,
         });
         setNews(data.news);
-        setLastUpdated(new Date());
+        setLastUpdated(new Date(data.fetchedAt));
+        setFeedCount(data.feedCount);
       } catch (e) {
         if (controller.signal.aborted) return;
         setError(e instanceof Error ? e.message : 'Unknown error');
       } finally {
         setIsLoading(false);
+        setHasLoaded(true);
       }
     }
 
@@ -65,8 +72,10 @@ export function useNewsData() {
     news,
     newsByPrefecture,
     totalCount: news.length,
+    feedCount,
     lastUpdated,
     isLoading,
+    hasLoaded,
     error,
   };
 }
