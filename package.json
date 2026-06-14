@@ -8,7 +8,7 @@
     "test:run": "vitest run"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "vitest": "^4.1.6"
+    "concurrently": "^10.0.3",
+    "vitest": "^4.1.8"
   }
 }
