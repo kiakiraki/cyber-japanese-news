@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   }
 }
