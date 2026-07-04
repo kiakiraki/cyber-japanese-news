@@ -79,7 +79,7 @@ async function fetchOgpImageUrl(link: string): Promise<string | null> {
  * Mirrors the frontend card selection logic: exclude national, dedupe by prefecture,
  * prioritize breaking news and recency.
  */
-function selectFetchCandidates(items: NewsItem[]): NewsItem[] {
+export function selectFetchCandidates(items: NewsItem[]): NewsItem[] {
   const candidates = items.filter(
     (item) => item.prefectureCode !== 'national' && !item.link.startsWith('https://news.google.com/'),
   );
