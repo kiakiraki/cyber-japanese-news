@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { EarthquakeItem, TsunamiItem, WarningAreaSummary, JmaApiResponse } from '../types/jma';
-import { fetchWithRetry } from '../lib/fetchUtils';
+import { API_URL, fetchWithRetry } from '../lib/fetchUtils';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const POLL_INTERVAL = 30_000;
 const THREE_HOURS = 3 * 60 * 60 * 1000;
 const SIX_HOURS = 6 * 60 * 60 * 1000;

@@ -1,3 +1,7 @@
+// dev では .env.development の VITE_API_URL (wrangler dev) を使い、
+// 本番は Worker Static Assets で同一オリジン配信されるため相対パスにする
+export const API_URL = import.meta.env.VITE_API_URL ?? '';
+
 const MAX_RETRIES = 3;
 const DEFAULT_TIMEOUT = 15_000; // 15s
 

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { NewsItem, NewsApiResponse } from '../types/news';
-import { fetchWithRetry } from '../lib/fetchUtils';
+import { API_URL, fetchWithRetry } from '../lib/fetchUtils';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const POLL_INTERVAL = 60_000;
 const MOCK_FEED_COUNT = 7;
 
