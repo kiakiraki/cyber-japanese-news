@@ -1,3 +1,8 @@
 name = "cyber-news-api"
 main = "src/index.ts"
 compatibility_date = "2025-02-14"
+
+# frontend のビルド成果物を同一 Worker から配信する (deploy 前に frontend を build しておくこと)
+# アセットに一致しないリクエスト (/api/* など) は Worker の fetch ハンドラに渡る
+[assets]
+directory = "../frontend/dist"

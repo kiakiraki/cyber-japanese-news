@@ -3,7 +3,8 @@
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "concurrently -k -n worker,frontend -c cyan,magenta \"pnpm --filter ./worker run dev\" \"pnpm --filter ./frontend run dev\"",
-    "build": "pnpm --filter ./worker run build && pnpm --filter ./frontend run build",
+    "build": "pnpm --filter ./frontend run build && pnpm --filter ./worker run build",
+    "deploy": "pnpm --filter ./frontend run build && pnpm --filter ./worker run deploy",
     "test": "vitest",
     "test:run": "vitest run"
   },

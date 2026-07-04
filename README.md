@@ -53,6 +53,8 @@ NHK記事ページからOGP画像を取得し、地図上にサイバーパン�
 
 ## セットアップ
 
+必要ツール: Node.js 24 / pnpm 10（[mise](https://mise.jdx.dev/) 利用時は `.mise.toml` で自動選択）
+
 ```bash
 # 依存インストール（ルートで一括）
 pnpm install
@@ -88,18 +90,34 @@ VITE_API_URL=http://localhost:8787  # Worker APIのURL
 
 実データで動かす場合は `VITE_USE_MOCK=false` に変更。
 
+本番ビルドでは `VITE_API_URL` を設定しない（フロントエンドは Worker の Static Assets として同一オリジンで配信されるため、相対パスで API にアクセスする）。
+
+## デプロイ
+
+フロントエンドのビルド成果物を Cloudflare Workers の [Static Assets](https://developers.cloudflare.com/workers/static-assets/) として Worker と一緒に配信する構成。1回のデプロイで API と画面の両方が反映される。
+
+```bash
+# 手動デプロイ（frontend build → wrangler deploy）
+# ※ pnpm ビルトインの deploy コマンドと衝突するため必ず `run` を付ける
+pnpm run deploy
+```
+
+main ブランチへの push で GitHub Actions（`.github/workflows/deploy.yml`）が自動デプロイする。リポジトリの Secrets に `CLOUDFLARE_API_TOKEN`（Workers Scripts:Edit 権限）の登録が必要。
+
 ## プロジェクト構成
 
 ```
 cyber-japanese-news/
 ├── package.json             # ルート（pnpm workspaces + concurrently）
+├── packages/
+│   └── shared/              # frontend / worker 共通の型・定数
 ├── frontend/                # Vite + React + TypeScript
 │   └── src/
 │       ├── components/      # UIコンポーネント
 │       ├── hooks/           # カスタムフック
 │       ├── lib/             # マスタデータ・ユーティリティ
-│       └── types/           # 型定義
-├── worker/                  # Cloudflare Workers
+│       └── types/           # 型定義（sharedの再export）
+├── worker/                  # Cloudflare Workers（API + Static Assets配信）
 │   └── src/
 │       ├── index.ts         # APIエントリポイント
 │       ├── rss-fetcher.ts   # RSSフェッチ + パース
@@ -120,6 +138,8 @@ GET /api/news                    # 全ニュース取得
 GET /api/news?prefecture=13      # 都道府県フィルタ（13=東京都）
 GET /api/jma                     # 地震・津波・気象警報情報取得
 ```
+
+レスポンスは Cloudflare エッジでキャッシュされる（news=60秒、jma=30秒）。ブラウザ側にはキャッシュさせない（`max-age=0`）ため、フロントのポーリング間隔どおりに更新が届く。
 
 ## データソース
 
