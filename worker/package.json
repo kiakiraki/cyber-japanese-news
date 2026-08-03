@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@cyber-japanese-news/shared": "workspace:*",
-    "fast-xml-parser": "^5.9.0"
+    "fast-xml-parser": "^5.10.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260615.1",
-    "typescript": "^6.0.3",
-    "wrangler": "^4.100.0"
+    "@cloudflare/workers-types": "^5.20260731.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.117.0"
   }
 }
