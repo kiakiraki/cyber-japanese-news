@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@cyber-japanese-news/shared": "workspace:*",
-    "fast-xml-parser": "^5.9.0"
+    "fast-xml-parser": "^5.11.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260615.1",
